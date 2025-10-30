@@ -55,8 +55,6 @@ const authService = () => {
             await axios.post(import.meta.env.VITE_API_URL + '/api/login', $forms.loginForm)
            .then((response) => {
                token.value = response.data.token;
-               console.log('xyz: ', response.data.refresh_token)
-               //localStorage.setItem('refresh_token', response.data.refresh_token);
             });
 
             localStorage.setItem('token', token.value);
@@ -77,14 +75,6 @@ const authService = () => {
             console.warn('error: ', error.response.data.errors);
         }
     };
-
-    const handleRefreshToken = async () => {
-        const refreshToken = localStorage.getItem('refresh_token');
-        const response = await axios.post(import.meta.env.VITE_API_URL + '/token/refresh', {
-            refresh_token: refreshToken,
-        });
-        localStorage.setItem('token', response.data.token);
-    }
 
     const logout = () => {
         localStorage.removeItem('token');
