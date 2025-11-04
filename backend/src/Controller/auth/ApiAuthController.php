@@ -35,7 +35,7 @@ class ApiAuthController extends AbstractController
         throw new \RuntimeException('This method should not be called directly.');
     }
 
-    #[Route('/register', name: '_register', methods: ['POST'])]
+    #[Route('/register', name: '_register', methods: ['GET','POST'])]
     public function register(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
