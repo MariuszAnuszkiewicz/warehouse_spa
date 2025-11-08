@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Repository\StockRepository;
-use Doctrine\ORM\EntityManagerInterface;
 
 class StockService
 {
     public function __construct(
-        protected EntityManagerInterface $entityManager,
         protected StockRepository $stockRepository
     ) {}
 
