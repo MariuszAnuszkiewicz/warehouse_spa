@@ -11,22 +11,22 @@ use Symfony\Component\Serializer\SerializerInterface;
 
 class SerializeServiceTest extends TestCase
 {
-    private SerializerInterface $serializerMock;
+    private SerializerInterface $mockSerializerInterface;
     private SerializeService $service;
 
     protected function setUp(): void
     {
-        $this->serializerMock = $this->createMock(SerializerInterface::class);
+        $this->mockSerializerInterface = $this->createMock(SerializerInterface::class);
 
         $this->service = new SerializeService(
-            $this->serializerMock
+            $this->mockSerializerInterface
         );
     }
     public function testDataSerializeWithArray(): void
     {
         $data = ['id' => '123'];
 
-        $this->serializerMock
+        $this->mockSerializerInterface
             ->expects($this->once())
             ->method('serialize')
             ->with(
@@ -50,7 +50,7 @@ class SerializeServiceTest extends TestCase
             public function getId(): int { return 123; }
         };
 
-        $this->serializerMock
+        $this->mockSerializerInterface
             ->expects($this->once())
             ->method('serialize')
             ->with(
