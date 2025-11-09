@@ -2,7 +2,6 @@
 
 namespace App\Controller;
 
-use App\Repository\OrderRepository;
 use App\Service\LogService;
 use App\Service\OrderService;
 use App\Service\SerializeService;
@@ -17,14 +16,15 @@ class ApiOrderController extends AbstractController
 {
     public function __construct(
        private LogService $logService,
-       private SerializeService $serializeService
+       private SerializeService $serializeService,
+       private OrderService $orderService
     ){}
 
     #[Route('/orders', name: '_orders', methods: ['GET'])]
-    public function index(OrderRepository $orderRepository): JsonResponse
+    public function index(): JsonResponse
     {
         try {
-            $orders = $orderRepository->ordersWithRelationships();
+            $orders = $this->orderService->getAllOrders();
 
             if (empty($orders)) {
                 throw new \RuntimeException('The orders could not be found.');
@@ -48,10 +48,10 @@ class ApiOrderController extends AbstractController
     }
 
     #[Route('/order/{id}', name: '_order', methods: ['GET'])]
-    public function show(OrderRepository $orderRepository, int $id): JsonResponse
+    public function show(int $id): JsonResponse
     {
         try {
-            $order = $orderRepository->find($id);
+            $order = $orders = $this->orderService->getOrder($id);
 
             if (empty($order)) {
                 throw new \RuntimeException(sprintf('The order %s could not be found.', (string) $id));
@@ -75,9 +75,9 @@ class ApiOrderController extends AbstractController
     }
 
     #[Route('/order/create', name: '_order_create', methods: ['POST'])]
-    public function create(OrderService $orderService, Request $request): JsonResponse
+    public function create(Request $request): JsonResponse
     {
-        $orderService->create($request);
+        $this->orderService->create($request);
 
         return $this->json(
             [

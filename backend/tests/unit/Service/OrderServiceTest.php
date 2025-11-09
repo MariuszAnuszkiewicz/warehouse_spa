@@ -7,6 +7,7 @@ namespace App\Tests\Unit\Service;
 use App\Entity\Order;
 use App\Entity\Product;
 use App\Entity\Stock;
+use App\Repository\OrderRepository;
 use App\Repository\ProductRepository;
 use App\Repository\StockRepository;
 use App\Service\OrderService;
@@ -16,25 +17,35 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Statement;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 use PHPUnit\Framework\TestCase;
 
 class OrderServiceTest extends TestCase
 {
     private $entityManager;
+    private $orderRepository;
     private $productRepository;
     private $stockRepository;
     private $stockService;
     private $orderService;
+    private $cache;
+    private $item;
 
     protected function setUp(): void
     {
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
+        $this->orderRepository = $this->createMock(OrderRepository::class);
         $this->productRepository = $this->createMock(ProductRepository::class);
         $this->stockRepository = $this->createMock(StockRepository::class);
         $this->stockService = $this->createMock(StockService::class);
+        $this->cache = $this->createMock(CacheInterface::class);
+        $this->item = $this->createMock(ItemInterface::class);
 
         $this->orderService = new OrderService(
+            $this->cache,
             $this->entityManager,
+            $this->orderRepository,
             $this->productRepository,
             $this->stockRepository,
             $this->stockService

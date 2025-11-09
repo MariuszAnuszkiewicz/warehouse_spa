@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Order;
+use App\Repository\OrderRepository;
 use App\Repository\ProductRepository;
 use App\Repository\StockRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,11 +18,26 @@ use Symfony\Component\HttpFoundation\Response;
 class OrderService
 {
     public function __construct(
-        protected EntityManagerInterface $entityManager,
-        protected ProductRepository $productRepository,
-        protected StockRepository $stockRepository,
-        protected StockService $stockService
+        private CacheInterface $cache,
+        private EntityManagerInterface $entityManager,
+        private OrderRepository $orderRepository,
+        private ProductRepository $productRepository,
+        private StockRepository $stockRepository,
+        private StockService $stockService,
     ) {}
+
+    public function getAllOrders(): array
+    {
+        return $this->cache->get('all_orders', function (ItemInterface $item) {
+            $item->expiresAfter(3600);
+            return $this->orderRepository->ordersWithRelationships();
+        });
+    }
+
+    public function getOrder($id)
+    {
+        return $this->orderRepository->find($id);
+    }
 
     public function create(Request $request): void
     {

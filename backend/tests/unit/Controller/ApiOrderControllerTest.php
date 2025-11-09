@@ -19,11 +19,12 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ApiOrderControllerTest extends TestCase
 {
-    private $controller;
-    private $mockLogService;
-    private $mockSerializeService;
-    private $mockEntityManager;
-    private $mockOrderRepository;
+    private ApiOrderController $controller;
+    private LogService $mockLogService;
+    private SerializeService $mockSerializeService;
+    private EntityManagerInterface $mockEntityManager;
+    private OrderRepository $mockOrderRepository;
+    private OrderService $mockOrderService;
 
     protected function setUp(): void
     {
@@ -31,10 +32,12 @@ class ApiOrderControllerTest extends TestCase
         $this->mockLogService = $this->createMock(LogService::class);
         $this->mockSerializeService = $this->createMock(SerializeService::class);
         $this->mockOrderRepository = $this->createMock(OrderRepository::class);
+        $this->mockOrderService = $this->createMock(OrderService::class);
 
         $this->controller = new ApiOrderController(
             $this->mockLogService,
-            $this->mockSerializeService
+            $this->mockSerializeService,
+            $this->mockOrderService
         );
 
         $this->controller->setContainer(new Container());
@@ -45,8 +48,8 @@ class ApiOrderControllerTest extends TestCase
         $orders = [['id' => 1, 'quantityInOrder' => 24, 'products' => [], 'isPick' => false, 'note' => 'some note 1']];
         $serializedJson = json_encode($orders);
 
-        $this->mockOrderRepository
-            ->method('ordersWithRelationships')
+        $this->mockOrderService
+            ->method('getAllOrders')
             ->willReturn($orders);
 
         $this->mockSerializeService
@@ -54,7 +57,7 @@ class ApiOrderControllerTest extends TestCase
             ->with($orders)
             ->willReturn($serializedJson);
 
-        $response = $this->controller->index($this->mockOrderRepository);
+        $response = $this->controller->index();
 
         $this->assertInstanceOf(JsonResponse::class, $response);
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
@@ -76,7 +79,7 @@ class ApiOrderControllerTest extends TestCase
             ->method('logException')
             ->with($this->isInstanceOf(\RuntimeException::class));
 
-        $response = $this->controller->index($this->mockOrderRepository);
+        $response = $this->controller->index();
 
         $this->assertInstanceOf(JsonResponse::class, $response);
         $this->assertSame(Response::HTTP_NOT_FOUND, $response->getStatusCode());
@@ -99,8 +102,8 @@ class ApiOrderControllerTest extends TestCase
             ->setNote('some note 1')
             ->setCreatedAt($datetime);
 
-        $this->mockOrderRepository
-            ->method('find')
+        $this->mockOrderService
+            ->method('getOrder')
             ->with(1)
             ->willReturn($orderObj);
 
@@ -109,7 +112,7 @@ class ApiOrderControllerTest extends TestCase
             ->with($orderObj)
             ->willReturn($serializedJson);
 
-        $response = $this->controller->show($this->mockOrderRepository, 1);
+        $response = $this->controller->show(1);
 
         $this->assertInstanceOf(JsonResponse::class, $response);
         $data = json_decode($response->getContent(), true);
@@ -129,7 +132,7 @@ class ApiOrderControllerTest extends TestCase
             ->method('logException')
             ->with($this->isInstanceOf(\Throwable::class));
 
-        $response = $this->controller->show($this->mockOrderRepository, 999);
+        $response = $this->controller->show(999);
 
         $this->assertInstanceOf(JsonResponse::class, $response);
 
@@ -147,12 +150,11 @@ class ApiOrderControllerTest extends TestCase
 
         $request = new Request([], [], [], [], [], [], $serializedJson);
 
-        $orderServiceMock = $this->createMock(OrderService::class);
-        $orderServiceMock->expects($this->once())
+        $this->mockOrderService->expects($this->once())
             ->method('create')
             ->with($request);
 
-        $response = $this->controller->create($orderServiceMock, $request);
+        $response = $this->controller->create($request);
 
         $this->assertInstanceOf(JsonResponse::class, $response);
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());

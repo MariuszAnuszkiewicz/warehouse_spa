@@ -16,7 +16,7 @@ class OrderFixtures extends Fixture
                 ->setQuantityInOrder($data['product_quantity'])
                 ->setIsPick($data['is_pick'])
                 ->setNote($data['note'])
-                ->setCreatedAt($datetime = new \DateTime(date('Y-m-d H:i:s')););
+                ->setCreatedAt($datetime = new \DateTime(date('Y-m-d H:i:s')));
 
             $manager->persist($order);
         }
