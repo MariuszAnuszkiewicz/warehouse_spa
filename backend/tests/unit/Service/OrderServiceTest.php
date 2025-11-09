@@ -109,7 +109,7 @@ class OrderServiceTest extends TestCase
         $this->entityManager->method('getConnection')->willReturn($connection);
 
         $this->expectNotToPerformAssertions();
-        
+
         $statement = $this->createMock(Statement::class);
         $statement->method('executeStatement')->willThrowException(new \Exception('SQL error'));
         $connection->method('prepare')->willReturn($statement);
