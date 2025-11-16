@@ -1,4 +1,4 @@
-import { ref, reactive } from 'vue';
+import { ref } from 'vue';
 import axios from 'axios';
 
 const authService = () => {
@@ -52,7 +52,7 @@ const authService = () => {
 
     const handleLogin = async () => {
         try {
-            await axios.post(import.meta.env.VITE_API_URL + '/api/login', $forms.loginForm)
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/login`, $forms.loginForm)
            .then((response) => {
                token.value = response.data.token;
             });
@@ -67,7 +67,7 @@ const authService = () => {
 
     const handleRegister = async () => {
         try {
-            await axios.post(import.meta.env.VITE_API_URL + '/api/register', $forms.registerForm)
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/register`, $forms.registerForm)
             resetRegisterForm();
             return true;
         } catch (error) {

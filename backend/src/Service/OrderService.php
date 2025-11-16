@@ -28,13 +28,10 @@ class OrderService
 
     public function getAllOrders(): array
     {
-        return $this->cache->get('all_orders', function (ItemInterface $item) {
-            $item->expiresAfter(3600);
-            return $this->orderRepository->ordersWithRelationships();
-        });
+        return $this->orderRepository->ordersWithRelationships();
     }
 
-    public function getOrder($id)
+    public function getOrder(int $id): ?Order
     {
         return $this->orderRepository->find($id);
     }

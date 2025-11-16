@@ -49,5 +49,16 @@ class OrderRepository extends ServiceEntityRepository
             ->leftJoin('p.locations', 'l')
             ->getQuery()
             ->getResult();
+
+//        return $this->createQueryBuilder('o')
+//            ->select('
+//                o.id,
+//                p.id
+//                l.id
+//            ')
+//            ->leftJoin('o.products', 'p')
+//            ->leftJoin('p.locations', 'l')
+//            ->getQuery()
+//            ->getArrayResult();
     }
 }

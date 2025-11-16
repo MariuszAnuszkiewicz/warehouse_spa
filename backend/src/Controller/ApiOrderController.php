@@ -24,6 +24,7 @@ class ApiOrderController extends AbstractController
     public function index(): JsonResponse
     {
         try {
+
             $orders = $this->orderService->getAllOrders();
 
             if (empty($orders)) {

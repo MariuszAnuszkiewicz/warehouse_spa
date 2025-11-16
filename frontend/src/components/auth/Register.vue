@@ -44,6 +44,7 @@ const errors = reactive({
 
 async function onSubmit() {
   const res = await authService.handleRegister();
+
   if (res) {
     toast.success('Registered successfully!');
 
