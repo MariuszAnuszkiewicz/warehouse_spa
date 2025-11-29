@@ -54,12 +54,15 @@
 </template>
 
 <script setup>
+useTitle('create orders');
+
 import { ref, onMounted, inject } from 'vue';
 import { useRouter } from 'vue-router';
 import apiClient from '@/services/apiClient';
 import Multiselect from 'vue-multiselect';
 import Navbar from '@/components/navbar/Navbar';
 import { toast } from 'vue3-toastify';
+import { useTitle } from '@/helpers/useTitle';
 
 const apiDomain = inject('apiDomain');
 const form = ref([]);

@@ -46,12 +46,15 @@
 </template>
 
 <script setup name="Products">
+useTitle('products');
+
 import { ref, onMounted, watch, inject } from 'vue';
 import { useRouter } from 'vue-router';
 import apiClient from '@/services/apiClient';
 import authService from '@/services/authService';
 import Navbar from '@/components/navbar/Navbar';
 import ProductModal from '@/components/products/modals/ProductModal';
+import { useTitle } from '@/helpers/useTitle';
 
 const apiDomain = inject('apiDomain');
 const isLoading = ref(true);

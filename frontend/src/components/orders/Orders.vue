@@ -48,6 +48,8 @@
 </template>
 
 <script setup>
+useTitle('orders');
+
 import { ref, onMounted, watch, inject } from 'vue';
 import { useRouter } from 'vue-router';
 import apiClient from '@/services/apiClient';
@@ -55,6 +57,7 @@ import authService from '@/services/authService';
 import Navbar from '@/components/navbar/Navbar';
 import OrderModal from '@/components/orders/modals/OrderModal';
 import formatDate from '@/helpers/formatDate';
+import { useTitle } from '@/helpers/useTitle';
 
 const apiDomain = inject('apiDomain');
 const isLoading = ref(true);
