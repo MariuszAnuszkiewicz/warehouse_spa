@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Controller\Auth;
 
 use App\Controller\auth\ApiAuthController;
+use App\Dto\RegisterUserDTO;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface;
@@ -12,11 +13,13 @@ use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+
 
 class ApiAuthControllerTest extends WebTestCase
 {
@@ -28,6 +31,7 @@ class ApiAuthControllerTest extends WebTestCase
     private $mockPasswordHasher;
     private $mockRefreshTokenManager;
     private $mockValidator;
+    private $mockSerializer;
 
     protected function setUp(): void
     {
@@ -36,13 +40,15 @@ class ApiAuthControllerTest extends WebTestCase
         $this->mockPasswordHasher = $this->createMock(UserPasswordHasherInterface::class);
         $this->mockJwtManager = $this->createMock(JWTTokenManagerInterface::class);
         $this->mockRefreshTokenManager = $this->createMock(RefreshTokenManagerInterface::class);
+        $this->mockSerializer = $this->createMock(SerializerInterface::class);
 
         $this->apiAuthController = new ApiAuthController(
             $this->mockEntityManager,
             $this->mockPasswordHasher,
             $this->mockJwtManager,
             $this->mockValidator,
-            $this->mockRefreshTokenManager
+            $this->mockRefreshTokenManager,
+            $this->mockSerializer
         );
 
         $this->client = static::createClient();
@@ -61,11 +67,10 @@ class ApiAuthControllerTest extends WebTestCase
 
     public function  testRegisterSuccess(): void
     {
-        $inputData = [
-            'email' => 'test@example.com',
-            'name' => 'Mariusz',
-            'password' => 'password123',
-        ];
+        $dto = new RegisterUserDTO();
+        $dto->email = 'test@example.com';
+        $dto->name = 'Mariusz';
+        $dto->password = 'password123';
 
         $this->client->request(
             'POST',
@@ -73,8 +78,13 @@ class ApiAuthControllerTest extends WebTestCase
             [],
             [],
             ['CONTENT_TYPE' => 'application/json'],
-            json_encode($inputData)
+            json_encode($dto)
         );
+
+        $this->mockSerializer->method('deserialize')->willReturn($dto);
+
+        $violations = $this->createMock(ConstraintViolationListInterface::class);
+        $this->mockValidator->method('validate')->willReturn($violations);
 
         $response = $this->client->getResponse();
 
