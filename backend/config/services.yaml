@@ -6,45 +6,6 @@
 parameters:
 
 services:
-    App\Service\SerializerService:
-        arguments:
-            - 'Symfony\Component\Serializer\SerializerInterface'
-
-    App\Service\LogService:
-        arguments:
-            - 'Symfony\Component\HttpKernel\KernelInterface'
-            - 'Psr\Log\LoggerInterface'
-
-    App\Controller\Api\ApiOrderController:
-        arguments:
-            - '@App\Service\LogService'
-            - '@App\Service\SerializerService'
-        tags: [ 'api_order_controller.log_service','api_order_controller.serializer_service' ]
-
-    App\Controller\Api\ApiProductController:
-        arguments:
-            - '@App\Service\LogService'
-            - '@App\Service\SerializerService'
-        tags: [ 'api_product_controller.log_service','api_product_controller.serializer_service' ]
-
-    App\Controller\Api\ApiStockController:
-        arguments:
-            - '@App\Service\LogService'
-            - '@App\Service\SerializeService'
-        tags: [ 'api_stock_controller.log_service','api_stock_controller.serialize_service' ]
-
-    App\Service\OrderService:
-        arguments:
-            - 'EntityManagerInterface'
-            - 'App\Repository\ProductRepository'
-            - 'App\Repository\StockRepository'
-            - 'App\Service\StockService'
-
-    App\Service\StockService:
-        arguments:
-            - 'EntityManagerInterface'
-            - 'App\Repository\StockRepository'
-
     # default configuration for services in *this* file
 
     _defaults:
