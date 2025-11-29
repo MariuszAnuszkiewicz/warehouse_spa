@@ -2,6 +2,7 @@
 
 namespace App\Controller\auth;
 
+use App\dto\RegisterUserDTO;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -14,6 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Component\Serializer\SerializerInterface;
 
 #[Route('/api', name: 'app_api_auth')]
 class ApiAuthController extends AbstractController
@@ -23,7 +25,8 @@ class ApiAuthController extends AbstractController
         private UserPasswordHasherInterface $passwordHasher,
         private JWTTokenManagerInterface $jwtManager,
         private ValidatorInterface $validator,
-        private RefreshTokenManagerInterface $refreshTokenManager
+        private RefreshTokenManagerInterface $refreshTokenManager,
+        private SerializerInterface $serializer
     ) {}
 
     /*
@@ -38,14 +41,9 @@ class ApiAuthController extends AbstractController
     #[Route('/register', name: '_register', methods: ['GET','POST'])]
     public function register(Request $request): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
+        $dto = $this->serializer->deserialize($request->getContent(), RegisterUserDTO::class, 'json');
 
-        $user = new User();
-        $user->setEmail($data['email'] ?? null);
-        $user->setName($data['name'] ?? null);
-        $user->setPassword($data['password'] ?? null);
-
-        $errors = $this->validator->validate($user);
+        $errors = $this->validator->validate($dto);
         if (count($errors) > 0) {
             $errorMessages = [];
             foreach ($errors as $error) {
@@ -55,7 +53,10 @@ class ApiAuthController extends AbstractController
             return $this->json(['errors' => $errorMessages], Response::HTTP_BAD_REQUEST);
         }
 
-        $user->setPassword($this->passwordHasher->hashPassword($user, $data['password'] ?? null));
+        $user = new User();
+        $user->setEmail($dto->email);
+        $user->setName($dto->name);
+        $user->setPassword($this->passwordHasher->hashPassword($user, $dto->password));
 
         $this->entityManager->persist($user);
         $this->entityManager->flush();
