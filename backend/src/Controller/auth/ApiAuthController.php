@@ -2,7 +2,7 @@
 
 namespace App\Controller\auth;
 
-use App\dto\RegisterUserDTO;
+use App\Dto\RegisterUserDTO;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
