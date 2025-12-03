@@ -64,4 +64,15 @@ class StockRepository extends ServiceEntityRepository
             ->getQuery()
             ->execute();
     }
+
+    public function findByProductNames(array $names): array
+    {
+        return $this->createQueryBuilder('s')
+            ->select('s')
+            ->join('s.product', 'p')
+            ->where('s.productName IN (:names)')
+            ->setParameter('names', $names)
+            ->getQuery()
+            ->getResult();
+    }
 }

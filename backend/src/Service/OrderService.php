@@ -36,28 +36,53 @@ class OrderService
         return $this->orderRepository->find($id);
     }
 
+    public function filteringStockByName(array $dataContent): array
+    {
+        if (is_array($dataContent)) {
+            $productNames = array_map(fn($d) => $d->name ?? $d['name'], $dataContent);
+        }
+
+        $stockRecords = $this->stockRepository->findByProductNames($productNames);
+
+        $stockByName = [];
+        foreach ($stockRecords as $stock) {
+            $stockByName[$stock->getProductName()] = $stock;
+        }
+
+        return $stockByName;
+    }
+
     public function create(Request $request): void
     {
-        $dataContent = json_decode($request->getContent());
-        $orders = [];
-        foreach ($dataContent ?? [] as $data) {
-            $stockArray = $this->stockRepository->findBy(['productName' => $data->name]);
-            $productId = array_map(fn($stock) => $stock?->getProduct()->getId(), $stockArray)[0];
-            $product = $this->productRepository->find($productId);
+        $conn = $this->entityManager->getConnection();
+        try {
+            $conn->beginTransaction();
+            $dataContent = json_decode($request->getContent());
+            $stockByName = $this->filteringStockByName($dataContent);
 
-            $order = (new Order())
-                ->addProduct($product)
-                ->setQuantityInOrder($data->quantity ?? 0)
-                ->setIsPick($data->isPick ?? false)
-                ->setNote($data->note ?? '')
-                ->setCreatedAt(date_create());
+            $orders = [];
+            foreach ($dataContent ?? [] as $data) {
+                if (!$stockByName[$data->name]) {
+                    continue;
+                }
 
-            $this->entityManager->persist($order);
-            array_push($orders, $order);
+                $order = (new Order())
+                    ->addProduct($stockByName[$data->name]->getProduct())
+                    ->setQuantityInOrder($data->quantity)
+                    ->setIsPick($data->isPick)
+                    ->setNote($data->note)
+                    ->setCreatedAt(date_create());
+
+                $this->entityManager->persist($order);
+                array_push($orders, $order);
+            }
+            $this->entityManager->flush();
+            $this->createOrderProducts($orders);
+            $this->stockService->reduceProductFromStock($dataContent);
+            $conn->commit();
+        } catch (\Exception $e) {
+            $conn->rollBack();
         }
-        $this->entityManager->flush();
-        $this->createOrderProducts($orders);
-        $this->stockService->reduceProductFromStock($dataContent);
     }
 
     public function createOrderProducts(array $orders)
