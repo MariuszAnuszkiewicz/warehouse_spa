@@ -41,6 +41,16 @@ class OrderRepository extends ServiceEntityRepository
     //        ;
     //    }
 
+    public function removeById(int $id): int
+    {
+        return $this->createQueryBuilder('o')
+            ->delete()
+            ->where('o.id = :id')
+            ->setParameter('id', $id)
+            ->getQuery()
+            ->execute();
+    }
+
     public function ordersWithRelationships(): array
     {
         return $this->createQueryBuilder('o')
@@ -49,16 +59,5 @@ class OrderRepository extends ServiceEntityRepository
             ->leftJoin('p.locations', 'l')
             ->getQuery()
             ->getResult();
-
-//        return $this->createQueryBuilder('o')
-//            ->select('
-//                o.id,
-//                p.id
-//                l.id
-//            ')
-//            ->leftJoin('o.products', 'p')
-//            ->leftJoin('p.locations', 'l')
-//            ->getQuery()
-//            ->getArrayResult();
     }
 }

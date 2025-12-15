@@ -26,13 +26,19 @@
             <td class="text-center">{{ order.isPick }}</td>
             <td class="text-center">{{ formatDate(order.createdAt) }}</td>
             <td class="text-center">
-              <span class="btn-info">
+               <div class="btn-group">
                 <div @click.prevent="showModal($event)">
-                  <a :href='`order/${order.id}`' class="btn btn-info">
+                  <a :href='`order/${order.id}`' class="btn btn-info mx-1">
                     <font-awesome-icon :icon="['fas', 'eye']" />
                   </a>
                 </div>
-              </span>
+
+                <div @click.prevent="deleteOrder(order.id)">
+                  <a :href='`order/del/${order.id}`' class="btn btn-danger mx-1">
+                    <font-awesome-icon :icon="['fas', 'trash-arrow-up']" />
+                  </a>
+                </div>
+              </div>
             </td>
           </tr>
         </template>
@@ -71,7 +77,7 @@ const router = useRouter();
 const showModal = (event) => {
   getLink(event);
   const $id = link.value.split('/')[1];
-  fetchOrder($id);
+  fetchOrder(+$id);
   modal.value = true;
   isLoading.value = true;
 }
@@ -102,6 +108,18 @@ const fetchOrder = async (id) => {
     await apiClient.get(apiDomain + `/api/order/${id}`).then(response => {
       order.value = JSON.parse(response.data.order)
     });
+  } catch (error) {
+    console.warn(error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+const deleteOrder = async (id) => {
+  try {
+    await apiClient.delete(apiDomain + `/api/order/del/${id}`).then(
+       orders.value = orders.value.filter(o => o.id !== id)
+    );
   } catch (error) {
     console.warn(error);
   } finally {

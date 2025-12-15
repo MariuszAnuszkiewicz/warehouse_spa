@@ -52,7 +52,7 @@ class ApiOrderController extends AbstractController
     public function show(int $id): JsonResponse
     {
         try {
-            $order = $orders = $this->orderService->getOrder($id);
+            $order = $orders = $this->orderService->getOrder((int) $id);
 
             if (empty($order)) {
                 throw new \RuntimeException(sprintf('The order %s could not be found.', (string) $id));
@@ -73,6 +73,19 @@ class ApiOrderController extends AbstractController
                 ], Response::HTTP_NOT_FOUND
             );
         }
+    }
+
+    #[Route('/order/del/{id}', name: '_order_delete', methods: ['DELETE'])]
+    public function delete(Request $request): JsonResponse
+    {
+        $id = (int) $request->get('id');
+        $this->orderService->deleteSingleOrder($id);
+
+        return $this->json(
+            [
+                'message' => 'order deleted successfully',
+            ], Response::HTTP_NO_CONTENT
+        );
     }
 
     #[Route('/order/create', name: '_order_create', methods: ['POST'])]

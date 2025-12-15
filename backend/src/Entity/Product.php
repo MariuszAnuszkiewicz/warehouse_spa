@@ -111,7 +111,6 @@ class Product
     {
         if (!$this->orders->contains($order)) {
             $this->orders->add($order);
-            $order->addProduct($this);
         }
 
         return $this;

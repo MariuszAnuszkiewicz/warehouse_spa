@@ -76,8 +76,8 @@ class OrderService
                 $this->entityManager->persist($order);
                 array_push($orders, $order);
             }
+
             $this->entityManager->flush();
-            $this->createOrderProducts($orders);
             $this->stockService->reduceProductFromStock($dataContent);
             $conn->commit();
         } catch (\Exception $e) {
@@ -85,25 +85,15 @@ class OrderService
         }
     }
 
-    public function createOrderProducts(array $orders)
+    public function deleteSingleOrder(int $id)
     {
-        try {
-            $sql = 'INSERT INTO order_products (order_id, product_id) VALUES (:orderId, :productId)';
-            $stmt = $this->entityManager->getConnection()->prepare($sql);
+        $deleted = $this->orderRepository->removeById($id);
 
-            foreach ($orders ?? [] as $order) {
-                $stmt->executeStatement([
-                    'orderId' => $order->getId(),
-                    'productId' => $order->getProducts()->getId(),
-                ]);
-            }
-        } catch (\Throwable $e) {
-            return new JsonResponse(
-                [
-                   'error' => true,
-                   'message' => $e->getMessage()
-                ], Response::HTTP_NOT_FOUND
-            );
+        if ($deleted === 0) {
+            return $this->json([
+                'status' => 'error',
+                'message' => 'Order not found'
+            ], Response::HTTP_NOT_FOUND);
         }
     }
 }
