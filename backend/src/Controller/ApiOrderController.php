@@ -75,17 +75,28 @@ class ApiOrderController extends AbstractController
         }
     }
 
-    #[Route('/order/del/{id}', name: '_order_delete', methods: ['DELETE'])]
-    public function delete(Request $request): JsonResponse
+    #[Route('/order/del', name: '_order_delete', methods: ['DELETE'])]
+    public function deleteOrder(Request $request): JsonResponse
     {
-        $id = (int) $request->get('id');
-        $this->orderService->deleteSingleOrder($id);
+        $data = json_decode($request->getContent(), true) ?? [];
 
-        return $this->json(
-            [
-                'message' => 'order deleted successfully',
-            ], Response::HTTP_NO_CONTENT
-        );
+        foreach ($data['order_ids'] as $ids) {
+            $this->orderService->deleteSingleOrder($ids);
+        }
+
+        return new Response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    #[Route('/order/del/product/{id}', name: '_order_delete_product', methods: ['DELETE'])]
+    public function deleteProduct(Request $request): JsonResponse
+    {
+        $productId = (int) $request->get('id');
+        $data = json_decode($request->getContent(), true);
+        $orderId = (int) $data['order_id'];
+
+        $this->orderService->deleteProductFromTheOrder($orderId, $productId);
+
+        return new Response(null, Response::HTTP_NO_CONTENT);
     }
 
     #[Route('/order/create', name: '_order_create', methods: ['POST'])]

@@ -6,37 +6,47 @@
         <h5><strong class="header-text">List of Orders</strong></h5>
       </div>
       <p class="text-secondary" v-if="isLoading">Loading...</p>
+
+      <div class="d-flex justify-content-center">
+        <button
+            @click="removeSelected"
+            class="btn btn-danger m-2"
+        > Delete ({{ selectedIds.length }})
+          <font-awesome-icon :icon="['fas', 'trash-arrow-up']" />
+        </button>
+      </div>
       <table class="table table-hover">
         <thead>
-        <tr>
-          <th class="text-center">id</th>
-          <th class="text-center">Product Id</th>
-          <th class="text-center">Product Name</th>
-          <th class="text-center">Is Pick</th>
-          <th class="text-center">Create</th>
-          <th class="text-center">Actions</th>
-        </tr>
+          <tr>
+            <th class="text-center">id</th>
+            <th class="text-center">Product Id</th>
+            <th class="text-center">Product Name</th>
+            <th class="text-center">Is Pick</th>
+            <th class="text-center">Create</th>
+            <th class="text-center bg-info-subtle">Actions</th>
+          </tr>
         </thead>
         <tbody>
-        <template v-for="order in orders">
-          <tr v-for="product in order.products" :key="order.id">
-            <td class="text-center text-danger" scope="row"><b>{{ order.id }}</b></td>
-            <td class="text-center" scope="row">{{ product.id }}</td>
-            <td class="text-center">{{ product.stock.productName }}</td>
-            <td class="text-center">{{ order.isPick }}</td>
-            <td class="text-center">{{ formatDate(order.createdAt) }}</td>
-            <td class="text-center">
-               <div class="btn-group">
+        <template v-for="order in orders" :key="order.id">
+          <tr v-for="product in order.products" :key="product.id">
+            <td class="text-center align-middle text-danger" scope="row"><b>{{ order.id }}</b></td>
+            <td class="text-center align-middle" scope="row">{{ product.id }}</td>
+            <td class="text-center align-middle">{{ product.stock.productName }}</td>
+            <td class="text-center align-middle">{{ order.isPick }}</td>
+            <td class="text-center align-middle">{{ formatDate(order.createdAt) }}</td>
+            <td class="text-center align-middle">
+              <div class="btn-group">
                 <div @click.prevent="showModal($event)">
-                  <a :href='`order/${order.id}`' class="btn btn-info mx-1">
+                  <a :href='`order/${order.id}`' class="btn btn-info mx-2">
                     <font-awesome-icon :icon="['fas', 'eye']" />
                   </a>
                 </div>
-
-                <div @click.prevent="deleteOrder(order.id)">
-                  <a :href='`order/del/${order.id}`' class="btn btn-danger mx-1">
-                    <font-awesome-icon :icon="['fas', 'trash-arrow-up']" />
-                  </a>
+                <div class="my-2 mx-1">
+                  <input
+                     type="checkbox"
+                     v-model="selectedIds"
+                     :value="order.id"
+                  />
                 </div>
               </div>
             </td>
@@ -44,7 +54,14 @@
         </template>
         </tbody>
       </table>
-      <OrderModal :order="order" :modal="modal" :isLoading="isLoading" :width="width" @update:isOpen="closeModal">
+      <OrderModal
+          :order="order"
+          :modal="modal"
+          :isLoading="isLoading"
+          :width="width"
+          @update:isOpen="closeModal"
+          @update:order="refreshOrder"
+      >
         <template v-slot:header></template>
         <template v-slot:content></template>
         <template v-slot:footer></template>
@@ -72,6 +89,7 @@ const modal = ref(false);
 const orders = ref([]);
 const order = ref([]);
 const width = ref('65');
+const selectedIds = ref([]);
 const router = useRouter();
 
 const showModal = (event) => {
@@ -84,7 +102,12 @@ const showModal = (event) => {
 
 const closeModal = (value) => {
   modal.value = value;
+  fetchOrders();
 };
+
+const refreshOrder = (newOrder) => {
+  order.value = newOrder
+}
 
 const getLink = (event) => {
   const href = event.target.closest('a').getAttribute('href');
@@ -115,17 +138,18 @@ const fetchOrder = async (id) => {
   }
 }
 
-const deleteOrder = async (id) => {
-  try {
-    await apiClient.delete(apiDomain + `/api/order/del/${id}`).then(
-       orders.value = orders.value.filter(o => o.id !== id)
-    );
-  } catch (error) {
-    console.warn(error);
-  } finally {
-    isLoading.value = false;
-  }
+const getSelectedIds = (id) => {
+  return selectedIds.value.find(ids => ids === id);
 }
+
+const removeSelected = async () => {
+  await apiClient.delete(`${apiDomain}/api/order/del`, {
+    data: { order_ids: selectedIds.value }
+  }).then(() => {
+     orders.value = orders.value.filter(o => o.id !== getSelectedIds(o.id))
+     selectedIds.value.length = 0;
+  });
+};
 
 watch(modal, (newValue, oldValue) => {
   console.log(`Modal Ref changed from ${oldValue} to ${newValue}`);

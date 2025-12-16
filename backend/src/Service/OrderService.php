@@ -96,4 +96,40 @@ class OrderService
             ], Response::HTTP_NOT_FOUND);
         }
     }
+
+    public function deleteProductFromTheOrder(int $orderId, int $productId): void
+    {
+        $conn = $this->entityManager->getConnection();
+
+        $conn->executeStatement(
+            'DELETE FROM order_products WHERE product_id = :productId AND order_id = :orderId',
+            [
+                'productId' => $productId,
+                'orderId' => $orderId,
+            ]
+        );
+
+        $quantityProductsInOrder = $this->countProductsInOrder($orderId);
+
+        if ($quantityProductsInOrder < 1) {
+            $conn->executeStatement(
+                'DELETE FROM orders WHERE id = :orderId',
+                [
+                    'orderId' => $orderId,
+                ]
+            );
+        }
+    }
+
+    public function countProductsInOrder(int $orderId): int
+    {
+        $conn = $this->entityManager->getConnection();
+
+        $productCount = $conn->executeQuery(
+            'SELECT COUNT(*) AS products_amount FROM order_products WHERE order_id = :orderId',
+            ['orderId' => $orderId]
+        )->fetchOne();
+
+        return $productCount;
+    }
 }
