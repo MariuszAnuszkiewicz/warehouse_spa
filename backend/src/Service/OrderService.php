@@ -36,6 +36,11 @@ class OrderService
         return $this->orderRepository->find($id);
     }
 
+    public function deleteSingleOrder(int $id): void
+    {
+        $this->orderRepository->removeById($id);
+    }
+
     public function filteringStockByName(array $dataContent): array
     {
         if (is_array($dataContent)) {
@@ -82,18 +87,6 @@ class OrderService
             $conn->commit();
         } catch (\Exception $e) {
             $conn->rollBack();
-        }
-    }
-
-    public function deleteSingleOrder(int $id)
-    {
-        $deleted = $this->orderRepository->removeById($id);
-
-        if ($deleted === 0) {
-            return $this->json([
-                'status' => 'error',
-                'message' => 'Order not found'
-            ], Response::HTTP_NOT_FOUND);
         }
     }
 
