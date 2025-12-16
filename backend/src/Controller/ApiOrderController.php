@@ -76,7 +76,7 @@ class ApiOrderController extends AbstractController
     }
 
     #[Route('/order/del', name: '_order_delete', methods: ['DELETE'])]
-    public function deleteOrder(Request $request): JsonResponse
+    public function deleteOrder(Request $request): Response
     {
         $data = json_decode($request->getContent(), true) ?? [];
 
@@ -88,7 +88,7 @@ class ApiOrderController extends AbstractController
     }
 
     #[Route('/order/del/product/{id}', name: '_order_delete_product', methods: ['DELETE'])]
-    public function deleteProduct(Request $request): JsonResponse
+    public function deleteProduct(Request $request): Response
     {
         $productId = (int) $request->get('id');
         $data = json_decode($request->getContent(), true);
