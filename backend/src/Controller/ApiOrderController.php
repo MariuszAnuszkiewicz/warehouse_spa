@@ -111,4 +111,29 @@ class ApiOrderController extends AbstractController
             ], Response::HTTP_CREATED
         );
     }
+
+    #[Route('/order/update', name: '_order_update', methods: ['PUT', 'POST', 'DELETE'])]
+    public function update(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+
+        $orderField = array_map(null, $data['order'])[0];
+        $locationFields = array_map(null, $data['location']);
+
+        foreach ($data['product'] as $i => $productFields) {
+            $this->orderService->updateProductAndLocation(
+                (int) $orderField['orderId'],
+                (int) $productFields['oldProductId'],
+                (string) $productFields['productName'],
+                (string) $locationFields[$i]['locationName']
+            );
+        }
+
+        return $this->json(
+            [
+                'message' => 'order updated successfully',
+                'data' => json_decode($request->getContent(), true) ?? []
+            ], Response::HTTP_CREATED
+        );
+    }
 }

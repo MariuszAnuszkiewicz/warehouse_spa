@@ -5,19 +5,21 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Order;
+use App\Repository\LocationRepository;
 use App\Repository\OrderRepository;
 use App\Repository\ProductRepository;
 use App\Repository\StockRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Contracts\Cache\CacheInterface;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\Cache\ItemInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 class OrderService
 {
     public function __construct(
         private CacheInterface $cache,
         private EntityManagerInterface $entityManager,
+        private LocationRepository $locationRepository,
         private OrderRepository $orderRepository,
         private ProductRepository $productRepository,
         private StockRepository $stockRepository,
@@ -58,8 +60,9 @@ class OrderService
     public function create(Request $request): void
     {
         $conn = $this->entityManager->getConnection();
+        $conn->beginTransaction();
+
         try {
-            $conn->beginTransaction();
             $dataContent = json_decode($request->getContent());
             $stockByName = $this->filteringStockByName($dataContent);
 
@@ -83,8 +86,10 @@ class OrderService
             $this->entityManager->flush();
             $this->stockService->reduceProductFromStock($dataContent);
             $conn->commit();
+
         } catch (\Exception $e) {
             $conn->rollBack();
+            throw $e;
         }
     }
 
@@ -122,5 +127,66 @@ class OrderService
         )->fetchOne();
 
         return $productCount;
+    }
+
+    public function updateProductAndLocation(int $orderId, int $oldProductId, string $newProductName, string $newLocationName): void
+    {
+        $conn = $this->entityManager->getConnection();
+        $conn->beginTransaction();
+
+        try {
+            $stockRecords = $this->stockRepository->findByProductNames([$newProductName]);
+            $product = $stockRecords[0]?->getProduct();
+
+            if (!$product) {
+                throw new \InvalidArgumentException('Product not found');
+            }
+
+            $newProductId = $product->getId();
+
+            $conn->executeStatement(
+                'DELETE FROM order_products WHERE order_id = :orderId AND product_id = :oldProductId',
+                [
+                    'orderId' => $orderId,
+                    'oldProductId' => $oldProductId,
+                ]
+            );
+
+            $conn->executeStatement(
+                'INSERT INTO order_products (order_id, product_id) VALUES (:orderId, :newProductId)',
+                [
+                    'orderId' => $orderId,
+                    'newProductId' => $newProductId,
+                ]
+            );
+
+            $locations = $this->locationRepository->findBy(['name' => $newLocationName]);
+            if (!$locations) {
+                throw new \InvalidArgumentException('Locations not found');
+            }
+
+            $newLocationId = $locations[0]->getId();
+
+            $conn->executeStatement(
+                'DELETE FROM location_products WHERE product_id = :pid',
+                ['pid' => $newProductId]
+            );
+
+            $conn->executeStatement(
+                'INSERT INTO location_products (product_id, location_id) VALUES (:pid, :lid)',
+                [
+                    'pid' => $newProductId,
+                    'lid' => $newLocationId
+                ]
+            );
+
+            $conn->commit();
+
+        } catch (\Throwable $e) {
+            $conn->rollBack();
+            throw $e;
+        }
+
+        $this->entityManager->clear();
     }
 }

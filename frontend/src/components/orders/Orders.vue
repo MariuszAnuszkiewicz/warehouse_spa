@@ -56,6 +56,8 @@
       </table>
       <OrderModal
           :order="order"
+          :stocks="stocks"
+          :locations="locations"
           :modal="modal"
           :isLoading="isLoading"
           :width="width"
@@ -86,10 +88,12 @@ const apiDomain = inject('apiDomain');
 const isLoading = ref(true);
 const link = ref('');
 const modal = ref(false);
+const locations = ref([]);
 const orders = ref([]);
 const order = ref([]);
-const width = ref('65');
 const selectedIds = ref([]);
+const stocks = ref([]);
+const width = ref('65');
 const router = useRouter();
 
 const showModal = (event) => {
@@ -138,6 +142,32 @@ const fetchOrder = async (id) => {
   }
 }
 
+const fetchStocks = async () => {
+  try {
+    await apiClient.get(apiDomain + '/api/stocks').then(response => {
+      stocks.value = JSON.parse(response.data.stocks)
+      console.log('Stocks: ', stocks.value);
+    });
+  } catch (error) {
+    console.warn(error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+const fetchLocations = async () => {
+  try {
+    await apiClient.get(apiDomain + '/api/locations').then(response => {
+      locations.value = JSON.parse(response.data.locations)
+      console.log('Locations: ', locations.value);
+    });
+  } catch (error) {
+    console.warn(error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
 const getSelectedIds = (id) => {
   return selectedIds.value.find(ids => ids === id);
 }
@@ -157,5 +187,7 @@ watch(modal, (newValue, oldValue) => {
 
 onMounted(() => {
   fetchOrders();
+  fetchStocks();
+  fetchLocations();
 });
 </script>
