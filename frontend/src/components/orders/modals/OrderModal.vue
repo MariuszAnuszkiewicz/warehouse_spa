@@ -168,6 +168,7 @@ let dataForm = ref({});
 
 const emitCloseModal = () => {
   emit('update:isOpen', false);
+  enabledEdit.value = false;
 }
 
 const closeWindow = () => {

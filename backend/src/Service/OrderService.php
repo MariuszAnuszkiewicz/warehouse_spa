@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Order;
+use Symfony\Component\Serializer\SerializerInterface;
 use App\Repository\LocationRepository;
 use App\Repository\OrderRepository;
 use App\Repository\ProductRepository;
@@ -12,7 +13,6 @@ use App\Repository\StockRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
-use Symfony\Component\HttpFoundation\Request;
 
 class OrderService
 {
@@ -24,6 +24,7 @@ class OrderService
         private ProductRepository $productRepository,
         private StockRepository $stockRepository,
         private StockService $stockService,
+        private SerializerInterface $serializer
     ) {}
 
     public function getAllOrders(): array
@@ -41,50 +42,28 @@ class OrderService
         $this->orderRepository->removeById($id);
     }
 
-    public function filteringStockByName(array $dataContent): array
-    {
-        if (is_array($dataContent)) {
-            $productNames = array_map(fn($d) => $d->name ?? $d['name'], $dataContent);
-        }
-
-        $stockRecords = $this->stockRepository->findByProductNames($productNames);
-
-        $stockByName = [];
-        foreach ($stockRecords as $stock) {
-            $stockByName[$stock->getProductName()] = $stock;
-        }
-
-        return $stockByName;
-    }
-
-    public function create(Request $request): void
+    public function create(array|object $dataContent): void
     {
         $conn = $this->entityManager->getConnection();
         $conn->beginTransaction();
 
         try {
-            $dataContent = json_decode($request->getContent());
-            $stockByName = $this->filteringStockByName($dataContent);
+            $inputData = is_object($dataContent) ? $dataContent?->items : $dataContent['items'];
 
-            $orders = [];
-            foreach ($dataContent ?? [] as $data) {
-                if (!$stockByName[$data->name]) {
-                    continue;
-                }
-
+            foreach ($inputData ?? [] as $data) {
+                $stockRecords = $this->stockRepository->findByProductNames([$data->name])[0];
                 $order = (new Order())
-                    ->addProduct($stockByName[$data->name]->getProduct())
+                    ->addProduct($stockRecords->getProduct())
                     ->setQuantityInOrder($data->quantity)
                     ->setIsPick($data->isPick)
                     ->setNote($data->note)
                     ->setCreatedAt(date_create());
 
                 $this->entityManager->persist($order);
-                array_push($orders, $order);
             }
 
             $this->entityManager->flush();
-            $this->stockService->reduceProductFromStock($dataContent);
+            $this->stockService->reduceProductFromStock($inputData);
             $conn->commit();
 
         } catch (\Exception $e) {

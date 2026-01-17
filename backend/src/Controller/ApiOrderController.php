@@ -2,6 +2,9 @@
 
 namespace App\Controller;
 
+use App\Dto\order\CreateOrderRequestDto;
+use App\Dto\order\CreateOrderItemDto;
+use App\Dto\Order\UpdateOrderRequestDto;
 use App\Service\LogService;
 use App\Service\OrderService;
 use App\Service\SerializeService;
@@ -10,6 +13,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api', name: 'app_api')]
 class ApiOrderController extends AbstractController
@@ -100,9 +104,29 @@ class ApiOrderController extends AbstractController
     }
 
     #[Route('/order/create', name: '_order_create', methods: ['POST'])]
-    public function create(Request $request): JsonResponse
+    public function create(Request $request, ValidatorInterface $validator): JsonResponse
     {
-        $this->orderService->create($request);
+        $items = $this->serializeService->deserialize(
+            $request->getContent(),
+            CreateOrderItemDto::class . '[]',
+            'json'
+        );
+
+        $dto = new CreateOrderRequestDto($items);
+
+        $violations = $validator->validate($dto);
+
+        if (count($violations) > 0) {
+            $errors = [];
+
+            foreach ($violations as $violation) {
+                $errors[$violation->getPropertyPath()][] = $violation->getMessage();
+            }
+
+            return $this->json(['errors' => $errors], 400);
+        }
+
+        $this->orderService->create($dto);
 
         return $this->json(
             [
@@ -113,19 +137,41 @@ class ApiOrderController extends AbstractController
     }
 
     #[Route('/order/update', name: '_order_update', methods: ['PUT', 'POST', 'DELETE'])]
-    public function update(Request $request): JsonResponse
+    public function update(Request $request, ValidatorInterface $validator): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
+        $dto = $this->serializeService->deserialize(
+            $request->getContent(),
+            UpdateOrderRequestDto::class
+        );
 
-        $orderField = array_map(null, $data['order'])[0];
-        $locationFields = array_map(null, $data['location']);
+        $violations = $validator->validate($dto);
 
-        foreach ($data['product'] as $i => $productFields) {
+        if (count($violations) > 0) {
+            $errors = [];
+
+            foreach ($violations as $violation) {
+                $errors[$violation->getPropertyPath()][] = $violation->getMessage();
+            }
+
+            return $this->json(['errors' => $errors], 400);
+        }
+
+        $order = $dto->order[0];
+
+        if (count($dto->product) !== count($dto->location)) {
+            return $this->json([
+                'error' => 'Products and locations count mismatch'
+            ], 400);
+        }
+
+        foreach ($dto->product as $i => $product) {
+            $location = $dto->location[$i];
+
             $this->orderService->updateProductAndLocation(
-                (int) $orderField['orderId'],
-                (int) $productFields['oldProductId'],
-                (string) $productFields['productName'],
-                (string) $locationFields[$i]['locationName']
+                $order->orderId,
+                $product->oldProductId,
+                $product->productName,
+                $location->locationName
             );
         }
 

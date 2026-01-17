@@ -23,4 +23,13 @@ class SerializeService
 
         return $this->serializer->serialize($data, 'json', $context);
     }
+
+    public function deserialize(string $json, string $dtoClass): array|object
+    {
+        return $this->serializer->deserialize(
+            $json,
+            $dtoClass,
+            'json'
+        );
+    }
 }
