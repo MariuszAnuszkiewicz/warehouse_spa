@@ -2,6 +2,8 @@
 
 namespace App\Dto\Order;
 
+use App\Dto\Location\LocationDto;
+use App\Dto\Product\ProductDto;
 use Symfony\Component\Validator\Constraints as Assert;
 
 class UpdateOrderRequestDto

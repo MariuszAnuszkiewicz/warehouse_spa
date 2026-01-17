@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Dto\Order;
+namespace App\Dto\Location;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-class ProductDto
+class LocationDto
 {
     #[Assert\NotNull]
     #[Assert\Type('integer')]
@@ -13,5 +13,5 @@ class ProductDto
     #[Assert\NotBlank]
     #[Assert\Type('string')]
     #[Assert\Length(min: 2, max: 255)]
-    public string $productName;
+    public string $locationName;
 }
