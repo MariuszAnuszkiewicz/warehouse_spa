@@ -1,9 +1,7 @@
 import { inject } from 'vue'
 import apiClient from '@/services/apiClient'
 
-export function useOrdersQueries(isLoading) {
-
-    if (!isLoading) console.error('isLoading parameter is not exists')
+export function useOrdersQueries(isLoading = null) {
 
     const apiDomain = inject('apiDomain')
 
@@ -41,31 +39,12 @@ export function useOrdersQueries(isLoading) {
         }
     }
 
-    const queryStocks = async () => {
-        try {
-            const response = await apiClient.get(apiDomain + '/api/stocks')
-            return JSON.parse(response.data.stocks || '[]')
-        } catch (error) {
-            console.warn(error);
-            return [];
-        } finally {
-            isLoading.value = false;
-        }
-    }
-
-    const queryLocations = async () => {
-        try {
-            const response = await apiClient.get(apiDomain + '/api/locations')
-            return JSON.parse(response.data.locations || '[]')
-        } catch (error) {
-            console.warn(error);
-            return [];
-        } finally {
-            isLoading.value = false;
-        }
-    }
-
     const queryRemoveSelected = async ({ selectedIds, orders }) => {
+        if (!apiDomain) {
+            console.error('apiDomain is not provided')
+            return []
+        }
+
         await apiClient.delete(`${apiDomain}/api/order/del`, {
             data: { order_ids: selectedIds.value }
         }).then(() => {
@@ -74,11 +53,29 @@ export function useOrdersQueries(isLoading) {
         });
     };
 
+    const queryUpdateOrder = async (dataForm) => {
+        if (!apiDomain) {
+            console.error('apiDomain is not provided')
+            return []
+        }
+
+        try {
+            const response = await apiClient.put(`${apiDomain}/api/order/update`,
+                dataForm.value
+            )
+
+            return response
+
+        } catch (error) {
+            console.error(error)
+            return [];
+        }
+    }
+
     return {
         queryOrders,
         queryOrder,
-        queryStocks,
-        queryLocations,
-        queryRemoveSelected
+        queryRemoveSelected,
+        queryUpdateOrder
     }
 }

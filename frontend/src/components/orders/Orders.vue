@@ -83,6 +83,8 @@ import OrderModal from '@/components/orders/modals/OrderModal';
 import formatDate from '@/helpers/formatDate';
 import { useTitle } from '@/helpers/useTitle';
 import { useOrdersQueries } from '@/composables/useOrdersQueries';
+import { useLocationsQueries } from '@/composables/useLocationsQueries';
+import { useStocksQueries } from '@/composables/useStocksQueries';
 
 const apiDomain = inject('apiDomain');
 const isLoading = ref(true);
@@ -96,7 +98,9 @@ const stocks = ref([]);
 const width = ref('65');
 const router = useRouter();
 
-const { queryOrders, queryOrder, queryStocks, queryLocations, queryRemoveSelected } = useOrdersQueries(isLoading)
+const { queryOrders, queryOrder, queryRemoveSelected } = useOrdersQueries(isLoading)
+const { queryLocations } = useLocationsQueries(isLoading)
+const { queryStocks } = useStocksQueries(isLoading)
 
 const showModal = (event) => {
   getLink(event);

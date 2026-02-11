@@ -77,7 +77,7 @@
       </div>
       <template v-for="(product, index) in selectedProduct">
         <div v-if="product">
-          <form id="updateForm" @submit.prevent="updateData">
+          <form id="updateForm" @submit.prevent="updateOrder">
             <div class="mt-2 d-flex align-items-center gap-3 w-100 bg-light p-2 py-1">
               <label class="fw-bold mb-0 flex-shrink-0"><p class="my-1 text-bold">Product Name</p></label>
               <select
@@ -144,6 +144,7 @@ import {defineModel, defineEmits, inject, ref} from 'vue';
 import BaseModal from '@/components/modals/BaseModal';
 import formatDate from '@/helpers/formatDate';
 import apiClient from '@/services/apiClient';
+import { useOrdersQueries } from '@/composables/useOrdersQueries';
 
 defineModel('isLoading');
 defineModel('locations');
@@ -170,6 +171,8 @@ const selectedNote = ref([]);
 const selectedQuantityInOrder = ref([]);
 
 let dataForm = ref({});
+
+const { queryUpdateOrder } = useOrdersQueries()
 
 const emitCloseModal = () => {
   emit('update:isOpen', false);
@@ -213,31 +216,24 @@ const deleteProductFromTheOrder = async (id) => {
   }
 }
 
-const updateData = async () => {
+const updateOrder = async () => {
 
-  try {
-    dataForm.value = {
-      product: selectedProduct.value,
-      location: selectedLocation.value,
-      order: [{
-        orderId: selectedOrder.value[0].orderId,
-        isPick: selectedIsPick.value[0].isPick,
-        quantityInOrder: selectedQuantityInOrder.value[0].quantityInOrder,
-        note: selectedNote.value[0].note
-      }]
-    }
+  dataForm.value = {
+    product: selectedProduct.value,
+    location: selectedLocation.value,
+    order: [{
+      orderId: selectedOrder.value[0].orderId,
+      isPick: selectedIsPick.value[0].isPick,
+      quantityInOrder: selectedQuantityInOrder.value[0].quantityInOrder,
+      note: selectedNote.value[0].note
+    }]
+  }
 
-    const response = await apiClient.put(`${apiDomain}/api/order/update`,
-        dataForm.value
-    )
+  const response = await queryUpdateOrder(dataForm)
 
-    if (response.data) {
-      clearSelectData();
-      enabledEdit.value = false;
-    }
-
-  } catch (error) {
-    console.error(error)
+  if (response.data) {
+    clearSelectData();
+    enabledEdit.value = false;
   }
 }
 
