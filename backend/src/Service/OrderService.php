@@ -55,8 +55,8 @@ class OrderService
                 $order = (new Order())
                     ->addProduct($stockRecords->getProduct())
                     ->setQuantityInOrder($data->quantity)
-                    ->setIsPick($data->isPick)
-                    ->setNote($data->note)
+                    ->setIsPick($data->isPick ?? false)
+                    ->setNote($data->note ?? '')
                     ->setCreatedAt(date_create());
 
                 $this->entityManager->persist($order);

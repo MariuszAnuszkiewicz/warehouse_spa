@@ -72,7 +72,7 @@ const router = useRouter();
 
 const onSelected = (value) => {
   form.value = value.map((item) => ({
-    ...item
+    ...item,
   }))
 };
 

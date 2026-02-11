@@ -2,8 +2,8 @@
 
 namespace App\Controller;
 
-use App\Dto\order\CreateOrderRequestDto;
-use App\Dto\order\CreateOrderItemDto;
+use App\Dto\Order\CreateOrderRequestDto;
+use App\Dto\Order\CreateOrderItemDto;
 use App\Dto\Order\UpdateOrderRequestDto;
 use App\Service\LogService;
 use App\Service\OrderService;

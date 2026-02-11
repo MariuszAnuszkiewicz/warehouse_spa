@@ -7,9 +7,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 class CreateOrderItemDto
 {
     public function __construct(
-        #[Assert\NotBlank]
         #[Assert\Type('boolean')]
-        public bool $isPick,
+        public ?bool $isPick,
 
         #[Assert\NotBlank]
         #[Assert\Type('string')]
@@ -18,6 +17,7 @@ class CreateOrderItemDto
         #[Assert\Type('string')]
         public ?string $note,
 
+        #[Assert\NotBlank]
         #[Assert\Type('integer')]
         public int $quantity,
 

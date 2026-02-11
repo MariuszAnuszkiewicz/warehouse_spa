@@ -77,12 +77,12 @@ useTitle('orders');
 
 import { ref, onMounted, watch, inject } from 'vue';
 import { useRouter } from 'vue-router';
-import apiClient from '@/services/apiClient';
 import authService from '@/services/authService';
 import Navbar from '@/components/navbar/Navbar';
 import OrderModal from '@/components/orders/modals/OrderModal';
 import formatDate from '@/helpers/formatDate';
 import { useTitle } from '@/helpers/useTitle';
+import { useOrdersQueries } from '@/composables/useOrdersQueries';
 
 const apiDomain = inject('apiDomain');
 const isLoading = ref(true);
@@ -95,6 +95,8 @@ const selectedIds = ref([]);
 const stocks = ref([]);
 const width = ref('65');
 const router = useRouter();
+
+const { queryOrders, queryOrder, queryStocks, queryLocations, queryRemoveSelected } = useOrdersQueries(isLoading)
 
 const showModal = (event) => {
   getLink(event);
@@ -119,66 +121,26 @@ const getLink = (event) => {
 }
 
 const fetchOrders = async () => {
-  try {
-    await apiClient.get(apiDomain + '/api/orders').then(response => {
-      orders.value = JSON.parse(response.data.orders)
-    });
-  } catch (error) {
-    console.warn(error);
-  } finally {
-    isLoading.value = false;
-  }
+  orders.value = await queryOrders()
 }
 
 const fetchOrder = async (id) => {
-  try {
-    await apiClient.get(apiDomain + `/api/order/${id}`).then(response => {
-      order.value = JSON.parse(response.data.order)
-    });
-  } catch (error) {
-    console.warn(error);
-  } finally {
-    isLoading.value = false;
-  }
+  order.value = await queryOrder(id)
 }
 
 const fetchStocks = async () => {
-  try {
-    await apiClient.get(apiDomain + '/api/stocks').then(response => {
-      stocks.value = JSON.parse(response.data.stocks)
-      console.log('Stocks: ', stocks.value);
-    });
-  } catch (error) {
-    console.warn(error);
-  } finally {
-    isLoading.value = false;
-  }
+  stocks.value = await queryStocks()
 }
 
 const fetchLocations = async () => {
-  try {
-    await apiClient.get(apiDomain + '/api/locations').then(response => {
-      locations.value = JSON.parse(response.data.locations)
-      console.log('Locations: ', locations.value);
-    });
-  } catch (error) {
-    console.warn(error);
-  } finally {
-    isLoading.value = false;
-  }
-}
-
-const getSelectedIds = (id) => {
-  return selectedIds.value.find(ids => ids === id);
+  locations.value = await queryLocations()
 }
 
 const removeSelected = async () => {
-  await apiClient.delete(`${apiDomain}/api/order/del`, {
-    data: { order_ids: selectedIds.value }
-  }).then(() => {
-     orders.value = orders.value.filter(o => o.id !== getSelectedIds(o.id))
-     selectedIds.value.length = 0;
-  });
+  await queryRemoveSelected({
+    selectedIds,
+    orders
+  })
 };
 
 watch(modal, (newValue, oldValue) => {

@@ -119,11 +119,15 @@
                   {{ isPick }}
                 </option>
               </select>
+              <div class="pt-2">
+                <label for="note" class="pb-2"><b class="px-2">Note:</b></label>
+                <textarea id="note" class="mx-lg-2" name="note" v-model="selectedNote[index].note" :rows="3" :cols="50" />
+              </div>
             </div>
           </form>
         </div>
       </template>
-      <div v-if="enabledEdit" class="d-flex align-items-center gap-3 w-100 bg-light p-2 py-1">
+      <div v-if="enabledEdit" class="d-flex align-items-center gap-3 w-100 bg-light pb-2 px-2">
         <button
             type="submit"
             form="updateForm"
@@ -162,6 +166,7 @@ const selectedLocation = ref([]);
 const selectedProduct = ref([]);
 const selectedOrder = ref([]);
 const selectedIsPick = ref([]);
+const selectedNote = ref([]);
 const selectedQuantityInOrder = ref([]);
 
 let dataForm = ref({});
@@ -181,6 +186,7 @@ const clearSelectData = () => {
   selectedLocation.value = [];
   selectedOrder.value = [];
   selectedProduct.value = [];
+  selectedNote.value = [];
   selectedQuantityInOrder.value = [];
 }
 
@@ -216,7 +222,8 @@ const updateData = async () => {
       order: [{
         orderId: selectedOrder.value[0].orderId,
         isPick: selectedIsPick.value[0].isPick,
-        quantityInOrder: selectedQuantityInOrder.value[0].quantityInOrder
+        quantityInOrder: selectedQuantityInOrder.value[0].quantityInOrder,
+        note: selectedNote.value[0].note
       }]
     }
 
@@ -254,6 +261,10 @@ const toggleSwitch = (product, order, idx, event) => {
   event.target.checked
       ? selectedQuantityInOrder.value.push({quantityInOrder: order.quantityInOrder})
       : selectedQuantityInOrder.value.splice(idx, 1);
+
+  event.target.checked
+      ? selectedNote.value.push({note: order.note})
+      : selectedNote.value.splice(idx, 1);
 
   editMode();
 }
