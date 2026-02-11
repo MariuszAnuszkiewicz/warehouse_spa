@@ -140,7 +140,7 @@
 </template>
 
 <script setup>
-import {defineModel, defineEmits, inject, ref} from 'vue';
+import { defineModel, defineEmits, inject, ref } from 'vue';
 import BaseModal from '@/components/modals/BaseModal';
 import formatDate from '@/helpers/formatDate';
 import apiClient from '@/services/apiClient';
@@ -222,10 +222,10 @@ const updateOrder = async () => {
     product: selectedProduct.value,
     location: selectedLocation.value,
     order: [{
-      orderId: selectedOrder.value[0].orderId,
-      isPick: selectedIsPick.value[0].isPick,
-      quantityInOrder: selectedQuantityInOrder.value[0].quantityInOrder,
-      note: selectedNote.value[0].note
+      orderId: selectedOrder.value.at(0)?.orderId,
+      isPick: selectedIsPick.value.at(0)?.isPick,
+      quantityInOrder: selectedQuantityInOrder.value.at(0)?.quantityInOrder,
+      note: selectedNote.value.at(0)?.note
     }]
   }
 

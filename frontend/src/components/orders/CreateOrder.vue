@@ -61,14 +61,16 @@ import { useRouter } from 'vue-router';
 import apiClient from '@/services/apiClient';
 import Multiselect from 'vue-multiselect';
 import Navbar from '@/components/navbar/Navbar';
-import { toast } from 'vue3-toastify';
 import { useTitle } from '@/helpers/useTitle';
+import { useOrdersQueries } from '@/composables/useOrdersQueries';
 
 const apiDomain = inject('apiDomain');
 const form = ref([]);
 const options = ref([]);
 const products = ref([]);
 const router = useRouter();
+
+const { queryCreateOrder } = useOrdersQueries()
 
 const onSelected = (value) => {
   form.value = value.map((item) => ({
@@ -102,22 +104,7 @@ const fetchEntityData = async () => {
 }
 
 const createOrder = async () => {
-  console.log('Payload: ', form.value);
-  try {
-    await apiClient.post(apiDomain + '/api/order/create', form.value).then(response => {
-      if (response.data) {
-        toast.success('add items to order successfully.');
-        setTimeout(() => {
-          unSelected();
-        }, 5000);
-      }
-    });
-  } catch (error) {
-    if (error.status === 401) {
-      router.push('/login');
-    }
-    console.warn(error);
-  }
+  await queryCreateOrder(form)
 }
 
 onMounted(() => {

@@ -75,9 +75,7 @@
 <script setup>
 useTitle('orders');
 
-import { ref, onMounted, watch, inject } from 'vue';
-import { useRouter } from 'vue-router';
-import authService from '@/services/authService';
+import { ref, onMounted, watch } from 'vue';
 import Navbar from '@/components/navbar/Navbar';
 import OrderModal from '@/components/orders/modals/OrderModal';
 import formatDate from '@/helpers/formatDate';
@@ -86,9 +84,7 @@ import { useOrdersQueries } from '@/composables/useOrdersQueries';
 import { useLocationsQueries } from '@/composables/useLocationsQueries';
 import { useStocksQueries } from '@/composables/useStocksQueries';
 
-const apiDomain = inject('apiDomain');
 const isLoading = ref(true);
-const link = ref('');
 const modal = ref(false);
 const locations = ref([]);
 const orders = ref([]);
@@ -96,15 +92,14 @@ const order = ref([]);
 const selectedIds = ref([]);
 const stocks = ref([]);
 const width = ref('65');
-const router = useRouter();
 
 const { queryOrders, queryOrder, queryRemoveSelected } = useOrdersQueries(isLoading)
 const { queryLocations } = useLocationsQueries(isLoading)
 const { queryStocks } = useStocksQueries(isLoading)
 
 const showModal = (event) => {
-  getLink(event);
-  const $id = link.value.split('/')[1];
+  const href = event.target.closest('a')?.getAttribute('href') ?? null
+  const $id = href.split('/').find(h => h !== 'order');
   fetchOrder(+$id);
   modal.value = true;
   isLoading.value = true;
@@ -117,11 +112,6 @@ const closeModal = (value) => {
 
 const refreshOrder = (newOrder) => {
   order.value = newOrder
-}
-
-const getLink = (event) => {
-  const href = event.target.closest('a').getAttribute('href');
-  link.value = href;
 }
 
 const fetchOrders = async () => {

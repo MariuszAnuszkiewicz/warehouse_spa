@@ -1,9 +1,12 @@
 import { inject } from 'vue'
 import apiClient from '@/services/apiClient'
+import { toast } from 'vue3-toastify'
+import { useRouter } from 'vue-router'
 
 export function useOrdersQueries(isLoading = null) {
 
     const apiDomain = inject('apiDomain')
+    const router = useRouter();
 
     const queryOrders = async () => {
         if (!apiDomain) {
@@ -72,10 +75,35 @@ export function useOrdersQueries(isLoading = null) {
         }
     }
 
+    const queryCreateOrder = async (form) => {
+        if (!apiDomain) {
+            console.error('apiDomain is not provided')
+            return []
+        }
+
+        try {
+            await apiClient.post(apiDomain + '/api/order/create', form.value).then(response => {
+                if (response.data) {
+                    toast.success('add items to order successfully.');
+                    setTimeout(() => {
+                        unSelected();
+                    }, 5000);
+                }
+            });
+        } catch (error) {
+            if (error.status === 401) {
+                router.push('/login');
+            }
+            console.warn(error);
+            return [];
+        }
+    }
+
     return {
         queryOrders,
         queryOrder,
         queryRemoveSelected,
-        queryUpdateOrder
+        queryUpdateOrder,
+        queryCreateOrder
     }
 }
