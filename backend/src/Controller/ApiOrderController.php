@@ -166,12 +166,16 @@ class ApiOrderController extends AbstractController
 
         foreach ($dto->product as $i => $product) {
             $location = $dto->location[$i];
+            $productName = $product->productName;
+            $orderId = $order->orderId;
 
-            $this->orderService->updateProductAndLocation(
-                $order->orderId,
+            $this->orderService->updateOrderEntityWithRelationships(
+                $orderId,
+                $order->quantityInOrder,
                 $product->oldProductId,
-                $product->productName,
-                $location->locationName
+                $productName,
+                $location->locationName,
+                $order->note
             );
         }
 

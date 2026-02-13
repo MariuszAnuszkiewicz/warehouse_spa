@@ -18,4 +18,8 @@ class OrderDto
     #[Assert\Type('integer')]
     #[Assert\Positive]
     public int $quantityInOrder;
+
+    #[Assert\NotNull]
+    #[Assert\Type('string')]
+    public string $note;
 }

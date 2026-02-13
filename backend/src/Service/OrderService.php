@@ -108,12 +108,11 @@ class OrderService
         return $productCount;
     }
 
-    public function updateProductAndLocation(int $orderId, int $oldProductId, string $newProductName, string $newLocationName): void
+    private function updateOrderProducts(int $orderId, int $oldProductId, string $newProductName)
     {
         $conn = $this->entityManager->getConnection();
-        $conn->beginTransaction();
-
         try {
+
             $stockRecords = $this->stockRepository->findByProductNames([$newProductName]);
             $product = $stockRecords[0]?->getProduct();
 
@@ -139,6 +138,26 @@ class OrderService
                 ]
             );
 
+        } catch (\Throwable $e) {
+            throw $e;
+        }
+
+        $this->entityManager->clear();
+    }
+
+    private function updateLocationProducts(string $newProductName, string $newLocationName): void
+    {
+        $conn = $this->entityManager->getConnection();
+        try {
+            $stockRecords = $this->stockRepository->findByProductNames([$newProductName]);
+            $product = $stockRecords[0]?->getProduct();
+
+            if (!$product) {
+                throw new \InvalidArgumentException('Product not found');
+            }
+
+            $newProductId = $product->getId();
+
             $locations = $this->locationRepository->findBy(['name' => $newLocationName]);
             if (!$locations) {
                 throw new \InvalidArgumentException('Locations not found');
@@ -159,13 +178,81 @@ class OrderService
                 ]
             );
 
+        } catch (\Throwable $e) {
+            throw $e;
+        }
+
+        $this->entityManager->clear();
+    }
+
+    private function updateNoteInOrder(int $orderId, string $note)
+    {
+        $conn = $this->entityManager->getConnection();
+
+        try {
+            $conn->executeStatement(
+                'UPDATE orders SET note = :note WHERE id = :id',
+                [
+                    'id' => $orderId,
+                    'note' => $note,
+                ]
+            );
+
+        } catch (\Throwable $e) {
+            throw $e;
+        }
+    }
+
+    private function updateQuantityInOrder(int $orderId, int $quantityInOrder)
+    {
+        $conn = $this->entityManager->getConnection();
+
+        try {
+            $conn->executeStatement(
+                'UPDATE orders SET quantity_in_order = :quantityInOrder WHERE id = :id',
+                [
+                    'id' => $orderId,
+                    'quantityInOrder' => $quantityInOrder,
+                ]
+            );
+
+        } catch (\Throwable $e) {
+            throw $e;
+        }
+    }
+
+    public function updateOrderEntityWithRelationships(
+        int $orderId,
+        int $quantityInOrder,
+        int $oldProductId,
+        string $newProductName,
+        string $newLocationName,
+        string $note
+    ): void
+    {
+        $conn = $this->entityManager->getConnection();
+        $conn->beginTransaction();
+        try {
+            // table location_products
+            $this->updateLocationProducts(
+                $newProductName,
+                $newLocationName
+            );
+            // table order_products
+            $this->updateOrderProducts(
+                $orderId,
+                $oldProductId,
+                $newProductName
+            );
+            // table orders
+            $this->updateNoteInOrder($orderId, $note);
+            // table orders
+            $this->updateQuantityInOrder($orderId, $quantityInOrder);
             $conn->commit();
 
         } catch (\Throwable $e) {
             $conn->rollBack();
             throw $e;
         }
-
-        $this->entityManager->clear();
     }
 }
