@@ -169,7 +169,7 @@ class ApiOrderController extends AbstractController
             $productName = $product->productName;
             $orderId = $order->orderId;
 
-            $this->orderService->updateOrderEntityWithRelationships(
+            $this->orderService->updateOrdersTableWithRelationships(
                 $orderId,
                 $order->quantityInOrder,
                 $product->oldProductId,

@@ -29,7 +29,7 @@ class UpdateOrderRequestDto
      */
     #[Assert\NotBlank]
     #[Assert\Type('array')]
-    #[Assert\Count(min: 1, max: 1)]
+    #[Assert\Count(min: 1)]
     #[Assert\Valid]
     public array $order = [];
 }

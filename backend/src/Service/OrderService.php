@@ -185,7 +185,7 @@ class OrderService
         $this->entityManager->clear();
     }
 
-    private function updateNoteInOrder(int $orderId, string $note)
+    private function updateNote(int $orderId, string|null $note)
     {
         $conn = $this->entityManager->getConnection();
 
@@ -221,7 +221,7 @@ class OrderService
         }
     }
 
-    public function updateOrderEntityWithRelationships(
+    public function updateOrdersTableWithRelationships(
         int $orderId,
         int $quantityInOrder,
         int $oldProductId,
@@ -233,20 +233,20 @@ class OrderService
         $conn = $this->entityManager->getConnection();
         $conn->beginTransaction();
         try {
-            // table location_products
+            // update table location_products
             $this->updateLocationProducts(
                 $newProductName,
                 $newLocationName
             );
-            // table order_products
+            // update table order_products
             $this->updateOrderProducts(
                 $orderId,
                 $oldProductId,
                 $newProductName
             );
-            // table orders
-            $this->updateNoteInOrder($orderId, $note);
-            // table orders
+            // update field note within table orders
+            $this->updateNote($orderId, $note);
+            // update field describe in method name within table orders
             $this->updateQuantityInOrder($orderId, $quantityInOrder);
             $conn->commit();
 
