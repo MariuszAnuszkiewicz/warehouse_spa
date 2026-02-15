@@ -192,7 +192,6 @@ const selectedLocation = ref([]);
 const selectedProduct = ref([]);
 const selectedOrder = ref([]);
 const selectedIsPick = ref([]);
-const selectedNote = ref([]);
 const selectedQuantityInOrder = ref([]);
 
 let dataForm = ref({});
@@ -214,7 +213,6 @@ const clearSelectData = () => {
   selectedLocation.value = [];
   selectedOrder.value = [];
   selectedProduct.value = [];
-  selectedNote.value = [];
   selectedQuantityInOrder.value = [];
 }
 
@@ -295,10 +293,6 @@ const toggleSwitch = (product, order, idx, event) => {
   event.target.checked
       ? selectedQuantityInOrder.value.push({quantityInOrder: order.quantityInOrder})
       : selectedQuantityInOrder.value.splice(idx, 1);
-
-  event.target.checked
-      ? selectedNote.value.push({note: order.note})
-      : selectedNote.value.splice(idx, 1);
 
   editMode();
 }
