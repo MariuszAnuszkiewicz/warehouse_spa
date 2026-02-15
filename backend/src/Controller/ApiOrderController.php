@@ -7,6 +7,7 @@ use App\Dto\Order\CreateOrderItemDto;
 use App\Dto\Order\UpdateOrderRequestDto;
 use App\Service\LogService;
 use App\Service\OrderService;
+use App\Service\OrderValidator;
 use App\Service\SerializeService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -175,7 +176,6 @@ class ApiOrderController extends AbstractController
                 $product->oldProductId,
                 $productName,
                 $location->locationName,
-                $order->note
             );
         }
 
@@ -185,5 +185,25 @@ class ApiOrderController extends AbstractController
                 'data' => json_decode($request->getContent(), true) ?? []
             ], Response::HTTP_CREATED
         );
+    }
+
+    #[Route('/order/update/note', name: '_order_update_note', methods: ['PUT'])]
+    public function updateNote(Request $request, OrderValidator $validator): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+
+        try {
+            $validated = $validator->validateNoteData($data);
+            $this->orderService->updateNote($validated['orderId'], $validated['note']);
+        } catch (BadRequestException $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        } catch (\Throwable $e) {
+            return $this->json(['error' => 'Failed to update note: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        return $this->json([
+            'message' => 'Note field of order updated successfully',
+            'data' => $validated
+        ], Response::HTTP_OK);
     }
 }

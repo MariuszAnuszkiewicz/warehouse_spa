@@ -185,22 +185,16 @@ class OrderService
         $this->entityManager->clear();
     }
 
-    private function updateNote(int $orderId, string|null $note)
+    public function updateNote(int $orderId, string $note)
     {
-        $conn = $this->entityManager->getConnection();
+        $order = $this->orderRepository->find($orderId);
 
-        try {
-            $conn->executeStatement(
-                'UPDATE orders SET note = :note WHERE id = :id',
-                [
-                    'id' => $orderId,
-                    'note' => $note,
-                ]
-            );
-
-        } catch (\Throwable $e) {
-            throw $e;
+        if (!$order) {
+            throw new \Exception("Order not found: $orderId");
         }
+
+        $order->setNote($note);
+        $this->entityManager->flush();
     }
 
     private function updateQuantityInOrder(int $orderId, int $quantityInOrder)
@@ -227,7 +221,6 @@ class OrderService
         int $oldProductId,
         string $newProductName,
         string $newLocationName,
-        string $note
     ): void
     {
         $conn = $this->entityManager->getConnection();
@@ -244,8 +237,6 @@ class OrderService
                 $oldProductId,
                 $newProductName
             );
-            // update field note within table orders
-            $this->updateNote($orderId, $note);
             // update field describe in method name within table orders
             $this->updateQuantityInOrder($orderId, $quantityInOrder);
             $conn->commit();

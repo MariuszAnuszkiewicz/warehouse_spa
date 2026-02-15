@@ -17,9 +17,37 @@
       <div class="modal-body mt-4">
         <div class="modal-body mt-4">
           <p class="text-secondary" v-if="isLoading">Loading...</p>
-          <div v-if="order.note">
+          <div v-if="order.note || order.note === ''">
             <div class="col-6 bg-warning-subtle mx-auto p-2 mb-2">
               <span><h6>Note: </h6>{{ order.note }}</span>
+            </div>
+            <div class="d-flex justify-content-center">
+              <div class="col-2 text-center bg-white">
+                <label class="switch m-2">
+                  <input
+                      type="checkbox"
+                      :checked="editNote"
+                      @change="toggleNote"
+                  />
+                 <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+            <div v-if="editNote" class="d-flex justify-content-center bg-light p-2">
+              <form id="updateNote" @submit.prevent="updateOrderNote(order.id)">
+                <div class="row align-items-center">
+                  <label class="col-auto col-form-label"><b>Note:</b></label>
+                  <textarea class="mx-lg-2" name="note" v-model="order.note" :rows="3" :cols="50" />
+                </div>
+                <div class="mt-3 mb-3">
+                  <button
+                      type="submit"
+                      form="updateNote"
+                      class="btn btn-primary">
+                    Update Note
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
           <table class="table table-striped">
@@ -119,10 +147,6 @@
                   {{ isPick }}
                 </option>
               </select>
-              <div class="pt-2">
-                <label for="note" class="pb-2"><b class="px-2">Note:</b></label>
-                <textarea id="note" class="mx-lg-2" name="note" v-model="selectedNote[index].note" :rows="3" :cols="50" />
-              </div>
             </div>
           </form>
         </div>
@@ -163,6 +187,7 @@ const emit = defineEmits(['update:isOpen', 'update:order']);
 const apiDomain = inject('apiDomain');
 
 const enabledEdit = ref(false);
+const editNote = ref(false);
 const selectedLocation = ref([]);
 const selectedProduct = ref([]);
 const selectedOrder = ref([]);
@@ -172,7 +197,7 @@ const selectedQuantityInOrder = ref([]);
 
 let dataForm = ref({});
 
-const { queryUpdateOrder } = useOrdersQueries()
+const { queryUpdateOrder, queryUpdateNoteField } = useOrdersQueries()
 
 const emitCloseModal = () => {
   emit('update:isOpen', false);
@@ -217,7 +242,6 @@ const deleteProductFromTheOrder = async (id) => {
 }
 
 const updateOrder = async () => {
-
   dataForm.value = {
     product: selectedProduct.value,
     location: selectedLocation.value,
@@ -225,7 +249,6 @@ const updateOrder = async () => {
       orderId: selectedOrder.value.at(0)?.orderId,
       isPick: selectedIsPick.value.at(0)?.isPick,
       quantityInOrder: selectedQuantityInOrder.value.at(0)?.quantityInOrder,
-      note: selectedNote.value.at(0)?.note
     }]
   }
 
@@ -234,6 +257,21 @@ const updateOrder = async () => {
   if (response.data) {
     clearSelectData();
     enabledEdit.value = false;
+  }
+}
+
+const updateOrderNote = async (orderId) => {
+  dataForm.value = {
+    order: [{
+      orderId: orderId,
+      note: order.note
+    }]
+  }
+
+  const response = await queryUpdateNoteField(dataForm)
+
+  if (response.data) {
+    editNote.value = false;
   }
 }
 
@@ -271,6 +309,10 @@ const selectProduct = (productName) => {
   } else {
     return false;
   }
+}
+
+const toggleNote = (event) => {
+  editNote.value = event.target.checked;
 }
 
 const editMode = () => {

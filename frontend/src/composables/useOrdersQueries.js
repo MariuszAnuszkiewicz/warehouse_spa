@@ -61,13 +61,33 @@ export function useOrdersQueries(isLoading = null) {
             console.error('apiDomain is not provided')
             return []
         }
-
+        console.log('xyz: ', dataForm.value)
         try {
             const response = await apiClient.put(`${apiDomain}/api/order/update`,
                 dataForm.value
             )
 
             return response
+
+        } catch (error) {
+            console.error(error)
+            return [];
+        }
+    }
+
+    const queryUpdateNoteField = async (dataForm) => {
+        if (!apiDomain) {
+            console.error('apiDomain is not provided')
+            return []
+        }
+
+        try {
+            const response = await apiClient.put(`${apiDomain}/api/order/update/note`,
+                dataForm.value
+            )
+
+            return response
+
 
         } catch (error) {
             console.error(error)
@@ -104,6 +124,7 @@ export function useOrdersQueries(isLoading = null) {
         queryOrder,
         queryRemoveSelected,
         queryUpdateOrder,
-        queryCreateOrder
+        queryCreateOrder,
+        queryUpdateNoteField
     }
 }
