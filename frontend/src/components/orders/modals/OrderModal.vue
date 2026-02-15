@@ -23,6 +23,7 @@
             </div>
             <div class="d-flex justify-content-center">
               <div class="col-2 text-center bg-white">
+                <span><p class="text-secondary text-small">Edit Note</p><b class="font-weight-bold">off/on</b></span>
                 <label class="switch m-2">
                   <input
                       type="checkbox"
@@ -39,13 +40,15 @@
                   <label class="col-auto col-form-label"><b>Note:</b></label>
                   <textarea class="mx-lg-2" name="note" v-model="order.note" :rows="3" :cols="50" />
                 </div>
-                <div class="mt-3 mb-3">
-                  <button
-                      type="submit"
-                      form="updateNote"
-                      class="btn btn-primary">
-                    Update Note
-                  </button>
+                <div class="d-flex justify-content-center">
+                  <div class="mt-3 mb-3">
+                    <button
+                        type="submit"
+                        form="updateNote"
+                        class="btn btn-primary">
+                      Update Note
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>

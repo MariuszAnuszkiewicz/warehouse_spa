@@ -194,6 +194,7 @@ class OrderService
         }
 
         $order->setNote($note);
+        $order->setUpdatedAt(date_create());
         $this->entityManager->flush();
     }
 
