@@ -93,8 +93,8 @@
                     <label class="switch m-2">
                       <input
                           type="checkbox"
-                          :checked="selectProduct(product.stock.productName)"
-                          @change="toggleSwitch(product, order, idx, $event)"
+                          :checked="isProductSelected(product.id)"
+                          @click.stop="toggleSwitch(product, order)"
                       />
                       <span class="slider"></span>
                     </label>
@@ -196,6 +196,7 @@ const selectedProduct = ref([]);
 const selectedOrder = ref([]);
 const selectedIsPick = ref([]);
 const selectedQuantityInOrder = ref([]);
+const selectedItems = ref([]);
 
 let dataForm = ref({});
 
@@ -276,49 +277,49 @@ const updateOrderNote = async (orderId) => {
   }
 }
 
-const toggleSwitch = (product, order, idx, event) => {
-  event.target.checked
-      ? selectedOrder.value.push({orderId: order.id})
-      : selectedOrder.value.splice(idx, 1);
+const toggleSwitch = (product, order) => {
 
-  event.target.checked
-      ? selectedProduct.value.push({oldProductId: product.id, productName: product.stock.productName})
-      : selectedProduct.value.splice(idx, 1);
+  const index = selectedProduct.value.findIndex(p => p.oldProductId === product.id);
 
-  event.target.checked
-      ? selectedLocation.value.push({oldProductId: product.id, locationName: product.locations.at(0)?.name})
-      : selectedLocation.value.splice(idx, 1);
+  if (index === -1) {
+    selectedOrder.value.push({ orderId: order.id });
 
-  event.target.checked
-      ? selectedIsPick.value.push({isPick: order.isPick})
-      : selectedIsPick.value.splice(idx, 1);
+    selectedProduct.value.push({
+      oldProductId: product.id,
+      productName: product.stock.productName
+    });
 
-  event.target.checked
-      ? selectedQuantityInOrder.value.push({quantityInOrder: order.quantityInOrder})
-      : selectedQuantityInOrder.value.splice(idx, 1);
+    selectedLocation.value.push({
+      oldProductId: product.id,
+      locationName: product.locations?.at(0)?.name || ''
+    });
 
-  editMode();
-}
+    selectedIsPick.value.push({ isPick: order.isPick });
 
-const selectProduct = (productName) => {
-  if (selectedProduct.value === productName && enabledEdit.value === true) {
-    return true;
+    selectedQuantityInOrder.value.push({
+      quantityInOrder: order.quantityInOrder
+    });
   } else {
-    return false;
+    selectedOrder.value.splice(index, 1);
+    selectedProduct.value.splice(index, 1);
+    selectedLocation.value.splice(index, 1);
+    selectedIsPick.value.splice(index, 1);
+    selectedQuantityInOrder.value.splice(index, 1);
   }
-}
+  editMode();
+};
+
+const isProductSelected = (productId) => {
+  return selectedProduct.value.some(p => p.oldProductId === productId);
+};
 
 const toggleNote = (event) => {
   editNote.value = event.target.checked;
 }
 
 const editMode = () => {
-  if (selectedProduct.value.length > 0) {
-    enabledEdit.value = true
-  } else {
-    enabledEdit.value = false
-  }
-}
+  enabledEdit.value = selectedProduct.value.length > 0;
+};
 
 </script>
 
