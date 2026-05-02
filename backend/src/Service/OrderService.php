@@ -74,26 +74,20 @@ class OrderService
 
     public function deleteProductFromTheOrder(int $orderId, int $productId): void
     {
-        $conn = $this->entityManager->getConnection();
+        $order = $this->orderRepository->find($orderId);
+        $product = $this->productRepository->find($productId);
 
-        $conn->executeStatement(
-            'DELETE FROM order_products WHERE product_id = :productId AND order_id = :orderId',
-            [
-                'productId' => $productId,
-                'orderId' => $orderId,
-            ]
-        );
-
-        $quantityProductsInOrder = $this->countProductsInOrder($orderId);
-
-        if ($quantityProductsInOrder < 1) {
-            $conn->executeStatement(
-                'DELETE FROM orders WHERE id = :orderId',
-                [
-                    'orderId' => $orderId,
-                ]
-            );
+        if (!$order || !$product) {
+            return;
         }
+
+        $order->removeProduct($product);
+
+        if ($order->getProducts()->isEmpty()) {
+            $this->entityManager->remove($order);
+        }
+
+        $this->entityManager->flush();
     }
 
     public function countProductsInOrder(int $orderId): int
@@ -108,81 +102,46 @@ class OrderService
         return $productCount;
     }
 
-    private function updateOrderProducts(int $orderId, int $oldProductId, string $newProductName)
+    private function updateOrderProducts(int $orderId, int $oldProductId, string $newProductName): void
     {
-        $conn = $this->entityManager->getConnection();
-        try {
+        $order = $this->orderRepository->find($orderId);
 
-            $stockRecords = $this->stockRepository->findByProductNames([$newProductName]);
-            $product = $stockRecords[0]?->getProduct();
-
-            if (!$product) {
-                throw new \InvalidArgumentException('Product not found');
-            }
-
-            $newProductId = $product->getId();
-
-            $conn->executeStatement(
-                'DELETE FROM order_products WHERE order_id = :orderId AND product_id = :oldProductId',
-                [
-                    'orderId' => $orderId,
-                    'oldProductId' => $oldProductId,
-                ]
-            );
-
-            $conn->executeStatement(
-                'INSERT INTO order_products (order_id, product_id) VALUES (:orderId, :newProductId)',
-                [
-                    'orderId' => $orderId,
-                    'newProductId' => $newProductId,
-                ]
-            );
-
-        } catch (\Throwable $e) {
-            throw $e;
+        $oldProduct = $this->productRepository->find($oldProductId);
+        if (!$order || !$oldProduct) {
+            throw new \InvalidArgumentException('Order or Old Product not found');
         }
 
-        $this->entityManager->clear();
+        $stockRecords = $this->stockRepository->findByProductNames([$newProductName]);
+        $newProduct = $stockRecords[0]?->getProduct();
+
+        if (!$newProduct) {
+            throw new \InvalidArgumentException('New Product not found');
+        }
+
+        $order->removeProduct($oldProduct);
+        $order->addProduct($newProduct);
+
+        $this->entityManager->flush();
     }
 
     private function updateLocationProducts(string $newProductName, string $newLocationName): void
     {
-        $conn = $this->entityManager->getConnection();
-        try {
-            $stockRecords = $this->stockRepository->findByProductNames([$newProductName]);
-            $product = $stockRecords[0]?->getProduct();
+        $stockRecords = $this->stockRepository->findByProductNames([$newProductName]);
+        $product = $stockRecords[0]?->getProduct();
 
-            if (!$product) {
-                throw new \InvalidArgumentException('Product not found');
-            }
-
-            $newProductId = $product->getId();
-
-            $locations = $this->locationRepository->findBy(['name' => $newLocationName]);
-            if (!$locations) {
-                throw new \InvalidArgumentException('Locations not found');
-            }
-
-            $newLocationId = $locations[0]->getId();
-
-            $conn->executeStatement(
-                'DELETE FROM location_products WHERE product_id = :pid',
-                ['pid' => $newProductId]
-            );
-
-            $conn->executeStatement(
-                'INSERT INTO location_products (product_id, location_id) VALUES (:pid, :lid)',
-                [
-                    'pid' => $newProductId,
-                    'lid' => $newLocationId
-                ]
-            );
-
-        } catch (\Throwable $e) {
-            throw $e;
+        if (!$product) {
+            throw new \InvalidArgumentException('Product not found');
         }
 
-        $this->entityManager->clear();
+        $location = $this->locationRepository->findOneBy(['name' => $newLocationName]);
+        if (!$location) {
+            throw new \InvalidArgumentException('Location not found');
+        }
+
+        $product->getLocations()->clear();
+        $product->addLocation($location);
+
+        $this->entityManager->flush();
     }
 
     public function updateNote(int $orderId, string $note)
@@ -198,22 +157,16 @@ class OrderService
         $this->entityManager->flush();
     }
 
-    private function updateQuantityInOrder(int $orderId, int $quantityInOrder)
+    private function updateQuantityInOrder(int $orderId, int $quantityInOrder): void
     {
-        $conn = $this->entityManager->getConnection();
+        $order = $this->orderRepository->find($orderId);
 
-        try {
-            $conn->executeStatement(
-                'UPDATE orders SET quantity_in_order = :quantityInOrder WHERE id = :id',
-                [
-                    'id' => $orderId,
-                    'quantityInOrder' => $quantityInOrder,
-                ]
-            );
-
-        } catch (\Throwable $e) {
-            throw $e;
+        if (!$order) {
+            throw new \Exception("Nie znaleziono zamówienia o ID: $orderId");
         }
+        $order->setQuantityInOrder($quantityInOrder);
+        $order->setUpdatedAt(new \DateTime());
+        $this->entityManager->flush();
     }
 
     public function updateOrdersTableWithRelationships(
