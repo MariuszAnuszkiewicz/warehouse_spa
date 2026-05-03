@@ -143,7 +143,7 @@
               </select>
               <label class="fw-bold mb-0 flex-shrink-0"><p class="my-1 text-bold">Is Pick</p></label>
               <select
-                  v-model="selectedIsPick[index].isPick"
+                  v-model="selectedIsPick[0].isPick"
               >
                 <option
                     v-for="isPick in [true, false]"

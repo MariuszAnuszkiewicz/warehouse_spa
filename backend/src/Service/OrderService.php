@@ -104,21 +104,21 @@ class OrderService
         return $productCount;
     }
 
-    private function updateOrderProducts(OrderDto $orderDto, ProductDto $products): void
+    private function updateOrderProducts(OrderDto $orderDto, ProductDto $productDto): void
     {
         $order = $this->orderRepository->find($orderDto->orderId);
 
-        $oldProduct = $this->productRepository->find($products->oldProductId);
+        $oldProduct = $this->productRepository->find($productDto->oldProductId);
 
         if (!$order || !$oldProduct) {
-            throw new \InvalidArgumentException("Order (ID: $orderDto->orderId) or Old Product (ID: {$products->oldProductId}) not found");
+            throw new \InvalidArgumentException("Order (ID: $orderDto->orderId) or Old Product (ID: {$productDto->oldProductId}) not found");
         }
 
-        $stockRecords = $this->stockRepository->findByProductNames([$products->productName]);
+        $stockRecords = $this->stockRepository->findByProductNames([$productDto->productName]);
         $newProduct = $stockRecords[0]?->getProduct();
 
         if (!$newProduct) {
-            throw new \InvalidArgumentException("New Product ({$products->productName}) not found in stock");
+            throw new \InvalidArgumentException("New Product ({$productDto->productName}) not found in stock");
         }
 
         if ($oldProduct->getId() !== $newProduct->getId()) {
@@ -126,7 +126,7 @@ class OrderService
             $order->addProduct($newProduct);
         }
 
-        $newProduct->setQuantityInProduct($products->quantityInProduct);
+        $newProduct->setQuantityInProduct($productDto->quantityInProduct);
         $newProduct->setUpdatedAt(new \DateTime());
     }
 
@@ -180,7 +180,7 @@ class OrderService
         $order = $this->orderRepository->find($order->orderId);
 
         if (!$order) {
-            throw new \Exception("Nie znaleziono zamówienia o Id: $order->orderId");
+            throw new \Exception("No order with id found Id: $order->orderId");
         }
 
         $now = new \DateTime();
