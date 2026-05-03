@@ -26,6 +26,7 @@ class ProductFixtures extends Fixture
 
         for ($i = 0; $i < 10; $i++) {
             $product = (new Product())
+                ->setQuantityInProduct(rand(1, 50))
                 ->setStock($stocks[$i])
                 ->setCreatedAt($datetime);
 

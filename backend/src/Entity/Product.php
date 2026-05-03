@@ -23,6 +23,9 @@ class Product
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $updatedAt = null;
 
+    #[ORM\Column(type: Types::INTEGER, nullable: false)]
+    private ?int $quantityInProduct = null;
+
     #[ORM\OneToOne(targetEntity: Stock::class, inversedBy: 'product')]
     private ?Stock $stock = null;
 
@@ -43,6 +46,18 @@ class Product
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getQuantityInProduct(): ?int
+    {
+        return $this->quantityInProduct;
+    }
+
+    public function setQuantityInProduct(int $quantityInProduct): static
+    {
+        $this->quantityInProduct = $quantityInProduct;
+
+        return $this;
     }
 
     public function getCreatedAt(): ?\DateTimeInterface

@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Doctrine\ORM\EntityManagerInterface;
 
 #[Route('/api', name: 'app_api')]
 class ApiOrderController extends AbstractController
@@ -22,7 +23,8 @@ class ApiOrderController extends AbstractController
     public function __construct(
        private LogService $logService,
        private SerializeService $serializeService,
-       private OrderService $orderService
+       private OrderService $orderService,
+       private EntityManagerInterface $entityManager
     ){}
 
     #[Route('/orders', name: '_orders', methods: ['GET'])]
@@ -157,27 +159,17 @@ class ApiOrderController extends AbstractController
             return $this->json(['errors' => $errors], 400);
         }
 
-        $order = $dto->order[0];
-
-        if (count($dto->product) !== count($dto->location)) {
-            return $this->json([
-                'error' => 'Products and locations count mismatch'
-            ], 400);
-        }
-
-        foreach ($dto->product as $i => $product) {
+        $orderDto = $dto->order[0];
+        foreach ($dto->product as $i => $productDto) {
             $location = $dto->location[$i];
-            $productName = $product->productName;
-            $orderId = $order->orderId;
-
             $this->orderService->updateOrdersTableWithRelationships(
-                $orderId,
-                $order->quantityInOrder,
-                $product->oldProductId,
-                $productName,
-                $location->locationName,
+                $orderDto,
+                $location,
+                $productDto
             );
         }
+
+        $this->entityManager->flush();
 
         return $this->json(
             [

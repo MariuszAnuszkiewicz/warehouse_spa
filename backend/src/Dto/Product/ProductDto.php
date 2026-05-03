@@ -14,4 +14,7 @@ class ProductDto
     #[Assert\Type('string')]
     #[Assert\Length(min: 2, max: 255)]
     public string $productName;
+
+    #[Assert\Type('integer')]
+    public ?int $quantityInProduct = null;
 }

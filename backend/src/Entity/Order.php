@@ -17,11 +17,8 @@ class Order
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(type: Types::INTEGER, nullable: false)]
-    private ?int $quantityInOrder = null;
-
     #[ORM\Column(type: Types::BOOLEAN, nullable: false)]
-    private ?bool $isPick = false;
+    private ?bool $isPick;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $note;
@@ -43,18 +40,6 @@ class Order
     public function getId(): ?int
     {
         return $this->id;
-    }
-
-    public function getQuantityInOrder(): ?int
-    {
-        return $this->quantityInOrder;
-    }
-
-    public function setQuantityInOrder(int $quantityInOrder): static
-    {
-        $this->quantityInOrder = $quantityInOrder;
-
-        return $this;
     }
 
     public function getProducts(): Collection

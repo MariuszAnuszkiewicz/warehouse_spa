@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Dto\Location\LocationDto;
+use App\Dto\Product\ProductDto;
+use App\Dto\Order\OrderDto;
 use App\Entity\Order;
 use Symfony\Component\Serializer\SerializerInterface;
 use App\Repository\LocationRepository;
@@ -54,7 +57,6 @@ class OrderService
                 $stockRecords = $this->stockRepository->findByProductNames([$data->name])[0];
                 $order = (new Order())
                     ->addProduct($stockRecords->getProduct())
-                    ->setQuantityInOrder($data->quantity)
                     ->setIsPick($data->isPick ?? false)
                     ->setNote($data->note ?? '')
                     ->setCreatedAt(date_create());
@@ -102,49 +104,53 @@ class OrderService
         return $productCount;
     }
 
-    private function updateOrderProducts(int $orderId, int $oldProductId, string $newProductName): void
+    private function updateOrderProducts(OrderDto $orderDto, ProductDto $products): void
     {
-        $order = $this->orderRepository->find($orderId);
+        $order = $this->orderRepository->find($orderDto->orderId);
 
-        $oldProduct = $this->productRepository->find($oldProductId);
+        $oldProduct = $this->productRepository->find($products->oldProductId);
+
         if (!$order || !$oldProduct) {
-            throw new \InvalidArgumentException('Order or Old Product not found');
+            throw new \InvalidArgumentException("Order (ID: $orderDto->orderId) or Old Product (ID: {$products->oldProductId}) not found");
         }
 
-        $stockRecords = $this->stockRepository->findByProductNames([$newProductName]);
+        $stockRecords = $this->stockRepository->findByProductNames([$products->productName]);
         $newProduct = $stockRecords[0]?->getProduct();
 
         if (!$newProduct) {
-            throw new \InvalidArgumentException('New Product not found');
+            throw new \InvalidArgumentException("New Product ({$products->productName}) not found in stock");
         }
 
-        $order->removeProduct($oldProduct);
-        $order->addProduct($newProduct);
+        if ($oldProduct->getId() !== $newProduct->getId()) {
+            $order->removeProduct($oldProduct);
+            $order->addProduct($newProduct);
+        }
 
-        $this->entityManager->flush();
+        $newProduct->setQuantityInProduct($products->quantityInProduct);
+        $newProduct->setUpdatedAt(new \DateTime());
     }
 
-    private function updateLocationProducts(string $newProductName, string $newLocationName): void
+    private function updateLocationProducts(LocationDto $location, ProductDto $productDto): void
     {
-        $stockRecords = $this->stockRepository->findByProductNames([$newProductName]);
+        $stockRecords = $this->stockRepository->findByProductNames([$productDto->productName]);
         $product = $stockRecords[0]?->getProduct();
 
         if (!$product) {
             throw new \InvalidArgumentException('Product not found');
         }
 
-        $location = $this->locationRepository->findOneBy(['name' => $newLocationName]);
-        if (!$location) {
+        $locationObj = $this->locationRepository->findOneBy(['name' => $location->locationName]);
+        if (!$locationObj) {
             throw new \InvalidArgumentException('Location not found');
         }
 
         $product->getLocations()->clear();
-        $product->addLocation($location);
+        $product->addLocation($locationObj);
 
         $this->entityManager->flush();
     }
 
-    public function updateNote(int $orderId, string $note)
+    public function updateNote(int $orderId, string $note): void
     {
         $order = $this->orderRepository->find($orderId);
 
@@ -157,42 +163,76 @@ class OrderService
         $this->entityManager->flush();
     }
 
-    private function updateQuantityInOrder(int $orderId, int $quantityInOrder): void
+    public function updateIsPick(OrderDto $orderDto): void
     {
-        $order = $this->orderRepository->find($orderId);
+        $order = $this->orderRepository->find($orderDto->orderId);
 
         if (!$order) {
-            throw new \Exception("Nie znaleziono zamówienia o ID: $orderId");
+            throw new \Exception("Order not found: $orderDto->orderId");
         }
-        $order->setQuantityInOrder($quantityInOrder);
-        $order->setUpdatedAt(new \DateTime());
-        $this->entityManager->flush();
+
+        $order->setIsPick($orderDto->isPick);
+        $order->setUpdatedAt(date_create());
+    }
+
+    private function updateQuantityProducts(OrderDto $order, ProductDto $productDto): void
+    {
+        $order = $this->orderRepository->find($order->orderId);
+
+        if (!$order) {
+            throw new \Exception("Nie znaleziono zamówienia o Id: $order->orderId");
+        }
+
+        $now = new \DateTime();
+        $oldProduct = $this->productRepository->find($productDto->oldProductId);
+        if ($oldProduct->getStock()->getProductName() !== $productDto->productName) {
+            $stockRecords = $this->stockRepository->findByProductNames([$productDto->productName]);
+            $newProductEntity = $stockRecords[0]?->getProduct();
+
+            if ($newProductEntity) {
+                $order->removeProduct($oldProduct);
+                $order->addProduct($newProductEntity);
+                $targetProduct = $newProductEntity;
+            } else {
+                $targetProduct = $oldProduct;
+            }
+        } else {
+            $targetProduct = $oldProduct;
+        }
+
+        $targetProduct->setQuantityInProduct((int)$productDto->quantityInProduct);
+        $targetProduct->setUpdatedAt($now);
     }
 
     public function updateOrdersTableWithRelationships(
-        int $orderId,
-        int $quantityInOrder,
-        int $oldProductId,
-        string $newProductName,
-        string $newLocationName,
+        OrderDto $orderDto,
+        LocationDto $location,
+        ProductDto $productDto
     ): void
     {
         $conn = $this->entityManager->getConnection();
         $conn->beginTransaction();
         try {
-            // update table location_products
+
             $this->updateLocationProducts(
-                $newProductName,
-                $newLocationName
+                $location,
+                $productDto
             );
-            // update table order_products
+
             $this->updateOrderProducts(
-                $orderId,
-                $oldProductId,
-                $newProductName
+                $orderDto,
+                $productDto
             );
-            // update field describe in method name within table orders
-            $this->updateQuantityInOrder($orderId, $quantityInOrder);
+
+            $this->updateQuantityProducts(
+                $orderDto,
+                $productDto
+            );
+
+            $this->updateIsPick(
+                $orderDto
+            );
+
             $conn->commit();
 
         } catch (\Throwable $e) {

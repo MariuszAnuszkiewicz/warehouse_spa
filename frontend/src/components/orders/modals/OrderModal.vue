@@ -72,7 +72,9 @@
                 <td class="text-center align-middle" scope="row">{{ product.id }}</td>
                 <td class="text-center align-middle">{{ product.stock.productName }}</td>
                 <td class="text-center align-middle">{{ product.stock.ean13 }}</td>
-                <td class="text-center align-middle">{{ order.quantityInOrder }}</td>
+                <td class="text-center align-middle">
+                  {{ Array.isArray(product.quantityInProduct) ? product.quantityInProduct[idx] : product.quantityInProduct }}
+                </td>
                 <td class="text-center align-middle">
                   {{ product?.locations.at(0)?.name }}
                 </td>
@@ -126,7 +128,7 @@
                      type="number"
                      min="1"
                      :max="order.products[index].stock.quantityInStock"
-                     v-model="selectedQuantityInOrder[index].quantityInOrder"
+                     v-model="selectedProduct[index].quantityInProduct"
               />
               <label class="fw-bold mb-0 flex-shrink-0"><p class="my-1 text-bold">Location</p></label>
               <select
@@ -195,8 +197,6 @@ const selectedLocation = ref([]);
 const selectedProduct = ref([]);
 const selectedOrder = ref([]);
 const selectedIsPick = ref([]);
-const selectedQuantityInOrder = ref([]);
-const selectedItems = ref([]);
 
 let dataForm = ref({});
 
@@ -217,7 +217,6 @@ const clearSelectData = () => {
   selectedLocation.value = [];
   selectedOrder.value = [];
   selectedProduct.value = [];
-  selectedQuantityInOrder.value = [];
 }
 
 const emitUpdateOrder = (newOrder) => {
@@ -249,11 +248,10 @@ const updateOrder = async () => {
     location: selectedLocation.value,
     order: [{
       orderId: selectedOrder.value.at(0)?.orderId,
-      isPick: selectedIsPick.value.at(0)?.isPick,
-      quantityInOrder: selectedQuantityInOrder.value.at(0)?.quantityInOrder,
+      isPick: selectedIsPick.value.at(0)?.isPick
     }]
   }
-
+  console.log('data form: ', dataForm);
   const response = await queryUpdateOrder(dataForm)
 
   if (response.data) {
@@ -286,7 +284,8 @@ const toggleSwitch = (product, order) => {
 
     selectedProduct.value.push({
       oldProductId: product.id,
-      productName: product.stock.productName
+      productName: product.stock.productName,
+      quantityInProduct: product.quantityInProduct
     });
 
     selectedLocation.value.push({
@@ -296,15 +295,11 @@ const toggleSwitch = (product, order) => {
 
     selectedIsPick.value.push({ isPick: order.isPick });
 
-    selectedQuantityInOrder.value.push({
-      quantityInOrder: order.quantityInOrder
-    });
   } else {
     selectedOrder.value.splice(index, 1);
     selectedProduct.value.splice(index, 1);
     selectedLocation.value.splice(index, 1);
     selectedIsPick.value.splice(index, 1);
-    selectedQuantityInOrder.value.splice(index, 1);
   }
   editMode();
 };

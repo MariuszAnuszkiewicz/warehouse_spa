@@ -13,9 +13,4 @@ class OrderDto
     #[Assert\NotNull]
     #[Assert\Type('bool')]
     public bool $isPick;
-
-    #[Assert\NotNull]
-    #[Assert\Type('integer')]
-    #[Assert\Positive]
-    public int $quantityInOrder;
 }
