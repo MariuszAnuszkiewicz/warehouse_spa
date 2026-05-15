@@ -9,126 +9,97 @@ use App\Entity\Product;
 use App\Repository\ProductRepository;
 use App\Service\LogService;
 use App\Service\SerializeService;
-use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class ApiProductControllerTest extends TestCase
 {
-    private $controller;
-    private $mockLogService;
-    private $mockSerializeService;
-    private $mockEntityManager;
-    private $mockProductRepository;
+    private ApiProductController $controller;
+    private LogService $logService;
+    private SerializeService $serializeService;
+    private ProductRepository $productRepository;
 
     protected function setUp(): void
     {
-        $this->mockEntityManager = $this->createMock(EntityManagerInterface::class);
-        $this->mockLogService = $this->createMock(LogService::class);
-        $this->mockSerializeService = $this->createMock(SerializeService::class);
-        $this->mockProductRepository = $this->createMock(ProductRepository::class);
+        $this->logService         = $this->createMock(LogService::class);
+        $this->serializeService   = $this->createMock(SerializeService::class);
+        $this->productRepository  = $this->createMock(ProductRepository::class);
 
         $this->controller = new ApiProductController(
-            $this->mockLogService,
-            $this->mockSerializeService
+            $this->logService,
+            $this->serializeService
         );
 
         $this->controller->setContainer(new Container());
     }
 
+    // --- index ---
+
     public function testIndexReturnsSerializedProducts(): void
     {
-        $products = [['stock_id' => 1]];
-        $serializedJson = json_encode($products);
+        $products = [new Product(), new Product()];
+        $serialized = '[{"id":1},{"id":2}]';
 
-        $this->mockProductRepository
-            ->method('productsWithRelationships')
-            ->willReturn($products);
+        $this->productRepository->method('productsWithRelationships')->willReturn($products);
+        $this->serializeService->method('dataSerialize')->with($products)->willReturn($serialized);
 
-        $this->mockSerializeService
-            ->method('dataSerialize')
-            ->with($products)
-            ->willReturn($serializedJson);
-
-        $response = $this->controller->index($this->mockProductRepository);
+        $response = $this->controller->index($this->productRepository);
 
         $this->assertInstanceOf(JsonResponse::class, $response);
-        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
-
         $this->assertArrayHasKey('products', $data);
-        $this->assertEquals($serializedJson, $data['products']);
+        $this->assertSame($serialized, $data['products']);
+        $this->assertArrayNotHasKey('error', $data);
     }
 
-    public function testIndexThrowsExceptionWhenNoProducts(): void
+    public function testIndexReturnsNotFoundWhenProductsEmpty(): void
     {
-        $this->mockProductRepository
-            ->method('productsWithRelationships')
-            ->willReturn([]);
-
-        $this->mockLogService
-            ->expects($this->once())
-            ->method('logException')
+        $this->productRepository->method('productsWithRelationships')->willReturn([]);
+        $this->logService->expects($this->once())->method('logException')
             ->with($this->isInstanceOf(\RuntimeException::class));
 
-        $response = $this->controller->index($this->mockProductRepository);
+        $response = $this->controller->index($this->productRepository);
 
-        $this->assertInstanceOf(JsonResponse::class, $response);
         $this->assertSame(Response::HTTP_NOT_FOUND, $response->getStatusCode());
-
         $data = json_decode($response->getContent(), true);
-
         $this->assertTrue($data['error']);
-        $this->assertEquals('The products could not be found.', $data['message']);
+        $this->assertSame('The products could not be found.', $data['message']);
     }
+
+    // --- show ---
 
     public function testShowReturnsSerializedProduct(): void
     {
-        $product = ['id' => 1, 'name' => 'Test Product'];
-        $serializedJson = json_encode($product);
+        $product = new Product();
+        $serialized = '{"id":1}';
 
-        $this->mockProductRepository
-            ->method('productByIdWithRelationships')
-            ->with(1)
-            ->willReturn($product);
+        $this->productRepository->method('productByIdWithRelationships')->with(1)->willReturn([$product]);
+        $this->serializeService->method('dataSerialize')->with([$product])->willReturn($serialized);
 
-        $this->mockSerializeService
-            ->method('dataSerialize')
-            ->with($product)
-            ->willReturn($serializedJson);
-
-        $response = $this->controller->show($this->mockProductRepository, 1);
+        $response = $this->controller->show($this->productRepository, 1);
 
         $this->assertInstanceOf(JsonResponse::class, $response);
-
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
-        $this->assertEquals(['product' => $serializedJson], $data);
-        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertSame($serialized, $data['product']);
+        $this->assertArrayNotHasKey('error', $data);
     }
 
-    public function testShowReturnsErrorIfProductNotFound(): void
+    public function testShowReturnsNotFoundWhenProductMissing(): void
     {
-        $this->mockProductRepository
-            ->method('productByIdWithRelationships')
-            ->with(999)
-            ->willReturn([]);
+        $this->productRepository->method('productByIdWithRelationships')->with(999)->willReturn([]);
+        $this->logService->expects($this->once())->method('logException')
+            ->with($this->isInstanceOf(\RuntimeException::class));
 
-        $this->mockLogService
-            ->expects($this->once())
-            ->method('logException')
-            ->with($this->isInstanceOf(\Throwable::class));
+        $response = $this->controller->show($this->productRepository, 999);
 
-        $response = $this->controller->show($this->mockProductRepository, 999);
-
-        $this->assertInstanceOf(JsonResponse::class, $response);
-
+        $this->assertSame(Response::HTTP_NOT_FOUND, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['error']);
+        $this->assertStringContainsString('999', $data['message']);
         $this->assertStringContainsString('could not be found', $data['message']);
-        $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode());
     }
 }

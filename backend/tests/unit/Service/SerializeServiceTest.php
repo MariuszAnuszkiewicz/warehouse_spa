@@ -11,61 +11,112 @@ use Symfony\Component\Serializer\SerializerInterface;
 
 class SerializeServiceTest extends TestCase
 {
-    private SerializerInterface $mockSerializerInterface;
+    private SerializerInterface $serializer;
     private SerializeService $service;
 
     protected function setUp(): void
     {
-        $this->mockSerializerInterface = $this->createMock(SerializerInterface::class);
-
-        $this->service = new SerializeService(
-            $this->mockSerializerInterface
-        );
+        $this->serializer = $this->createMock(SerializerInterface::class);
+        $this->service    = new SerializeService($this->serializer);
     }
-    public function testDataSerializeWithArray(): void
-    {
-        $data = ['id' => '123'];
 
-        $this->mockSerializerInterface
-            ->expects($this->once())
+    // --- dataSerialize ---
+
+    public function testDataSerializePassesArrayToSerializer(): void
+    {
+        $data = ['id' => 1, 'name' => 'Widget'];
+
+        $this->serializer->expects($this->once())
             ->method('serialize')
             ->with(
                 $data,
                 'json',
-                $this->callback(function ($context) {
-                    return isset($context[AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER])
-                        && is_callable($context[AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER]);
-                })
+                $this->callback(fn($ctx) =>
+                    isset($ctx[AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER]) &&
+                    is_callable($ctx[AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER])
+                )
             )
-            ->willReturn('{"id":"123"}');
+            ->willReturn('{"id":1,"name":"Widget"}');
 
         $result = $this->service->dataSerialize($data);
 
-        $this->assertSame('{"id":"123"}', $result);
+        $this->assertSame('{"id":1,"name":"Widget"}', $result);
     }
 
-    public function testDataSerializeWithObject(): void
+    public function testDataSerializePassesObjectToSerializer(): void
     {
-        $object = new class() {
-            public function getId(): int { return 123; }
-        };
+        $object = new class { public function getId(): int { return 5; } };
 
-        $this->mockSerializerInterface
-            ->expects($this->once())
+        $this->serializer->expects($this->once())
             ->method('serialize')
-            ->with(
-                $object,
-                'json',
-                $this->callback(function ($context) use ($object) {
-                    $handler = $context[AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER];
-                    $result = $handler($object);
-                    return is_array($result) && $result[0] === $object;
-                })
-            )
-            ->willReturn('{"id":123}');
+            ->with($object, 'json', $this->isType('array'))
+            ->willReturn('{"id":5}');
 
-        $result = $this->service->dataSerialize($object);
+        $this->assertSame('{"id":5}', $this->service->dataSerialize($object));
+    }
 
-        $this->assertSame('{"id":123}', $result);
+    public function testCircularReferenceHandlerReturnsArrayWhenIdIsTruthy(): void
+    {
+        $object = new class { public function getId(): int { return 1; } };
+
+        $capturedContext = null;
+        $this->serializer->method('serialize')
+            ->willReturnCallback(function ($data, $format, $context) use (&$capturedContext) {
+                $capturedContext = $context;
+                return '{}';
+            });
+
+        $this->service->dataSerialize($object);
+
+        $handler = $capturedContext[AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER];
+        $this->assertSame([$object], $handler($object));
+    }
+
+    public function testCircularReferenceHandlerReturnsEmptyStringWhenIdIsFalsy(): void
+    {
+        $object = new class { public function getId(): int { return 0; } };
+
+        $capturedContext = null;
+        $this->serializer->method('serialize')
+            ->willReturnCallback(function ($data, $format, $context) use (&$capturedContext) {
+                $capturedContext = $context;
+                return '{}';
+            });
+
+        $this->service->dataSerialize($object);
+
+        $handler = $capturedContext[AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER];
+        $this->assertSame('', $handler($object));
+    }
+
+    // --- deserialize ---
+
+    public function testDeserializePassesCorrectArgumentsToSerializer(): void
+    {
+        $json     = '{"name":"Widget","isPick":true}';
+        $dtoClass = 'App\Dto\Order\CreateOrderItemDto';
+        $expected = new \stdClass();
+
+        $this->serializer->expects($this->once())
+            ->method('deserialize')
+            ->with($json, $dtoClass, 'json')
+            ->willReturn($expected);
+
+        $result = $this->service->deserialize($json, $dtoClass);
+
+        $this->assertSame($expected, $result);
+    }
+
+    public function testDeserializeReturnsArray(): void
+    {
+        $json     = '[{"name":"A"},{"name":"B"}]';
+        $dtoClass = 'App\Dto\Order\CreateOrderItemDto[]';
+        $expected = [new \stdClass(), new \stdClass()];
+
+        $this->serializer->method('deserialize')->willReturn($expected);
+
+        $result = $this->service->deserialize($json, $dtoClass);
+
+        $this->assertSame($expected, $result);
     }
 }

@@ -9,80 +9,63 @@ use App\Entity\Stock;
 use App\Repository\StockRepository;
 use App\Service\LogService;
 use App\Service\SerializeService;
-use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class ApiStockControllerTest extends TestCase
 {
-    private $controller;
-    private $mockLogService;
-    private $mockSerializeService;
-    private $mockEntityManager;
-    private $mockStockRepository;
+    private ApiStockController $controller;
+    private LogService $logService;
+    private SerializeService $serializeService;
+    private StockRepository $stockRepository;
 
     protected function setUp(): void
     {
-        $this->mockEntityManager = $this->createMock(EntityManagerInterface::class);
-        $this->mockLogService = $this->createMock(LogService::class);
-        $this->mockSerializeService = $this->createMock(SerializeService::class);
-        $this->mockStockRepository = $this->createMock(StockRepository::class);
+        $this->logService       = $this->createMock(LogService::class);
+        $this->serializeService = $this->createMock(SerializeService::class);
+        $this->stockRepository  = $this->createMock(StockRepository::class);
 
         $this->controller = new ApiStockController(
-            $this->mockLogService,
-            $this->mockSerializeService
+            $this->logService,
+            $this->serializeService
         );
 
         $this->controller->setContainer(new Container());
     }
 
+    // --- index ---
+
     public function testIndexReturnsSerializedStocks(): void
     {
-        $stocks = [['id' => 1, 'name' => 'Test_Product', 'ean' => '9370942873429']];
-        $serialized = [['id' => 1, 'name' => 'Test_Product (serialized)', 'ean' => '9370942873429']];
-        $serializedJson = json_encode($serialized);
+        $stocks = [new Stock(), new Stock()];
+        $serialized = '[{"id":1},{"id":2}]';
 
-        $this->mockStockRepository
-            ->method('findAll')
-            ->willReturn($stocks);
+        $this->stockRepository->method('findAll')->willReturn($stocks);
+        $this->serializeService->method('dataSerialize')->with($stocks)->willReturn($serialized);
 
-        $this->mockSerializeService
-            ->method('dataSerialize')
-            ->with($stocks)
-            ->willReturn($serializedJson);
-
-        $response = $this->controller->index($this->mockStockRepository);
+        $response = $this->controller->index($this->stockRepository);
 
         $this->assertInstanceOf(JsonResponse::class, $response);
-        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
-
         $this->assertArrayHasKey('stocks', $data);
-        $this->assertEquals($serializedJson, $data['stocks']);
+        $this->assertSame($serialized, $data['stocks']);
+        $this->assertArrayNotHasKey('error', $data);
     }
 
-    public function testIndexThrowsExceptionWhenNoStocks(): void
+    public function testIndexReturnsNotFoundWhenStocksEmpty(): void
     {
-        $this->mockStockRepository
-            ->method('findAll')
-            ->willReturn([]);
+        $this->stockRepository->method('findAll')->willReturn([]);
+        $this->logService->expects($this->once())->method('logException')
+            ->with($this->isInstanceOf(\RuntimeException::class));
 
-        $this->mockLogService
-            ->expects($this->once())
-            ->method('logException');
+        $response = $this->controller->index($this->stockRepository);
 
-        $response = $this->controller->index($this->mockStockRepository);
-
-        $this->assertInstanceOf(JsonResponse::class, $response);
-        $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode());
-
+        $this->assertSame(Response::HTTP_NOT_FOUND, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
-
         $this->assertTrue($data['error']);
-        $this->assertEquals('No stocks found.', $data['message']);
+        $this->assertSame('No stocks found.', $data['message']);
     }
 }

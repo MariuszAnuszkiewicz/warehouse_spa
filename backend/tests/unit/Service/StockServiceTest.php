@@ -10,57 +10,112 @@ use PHPUnit\Framework\TestCase;
 
 class StockServiceTest extends TestCase
 {
-    private StockRepository $mockStockRepository;
+    private StockRepository $stockRepository;
     private StockService $stockService;
 
     protected function setUp(): void
     {
-        $this->mockStockRepository = $this->createMock(StockRepository::class);
-        $this->stockService = new StockService($this->mockStockRepository);
+        $this->stockRepository = $this->createMock(StockRepository::class);
+        $this->stockService    = new StockService($this->stockRepository);
     }
 
-    public function testReduceProductFromStockWithArrayData(): void
-    {
-        $data = [
-            [
-                'name' => 'Product A',
-                'quantityInStock' => 10,
-                'quantity' => 3
-            ],
-        ];
+    // --- array format ---
 
-        $this->mockStockRepository
-            ->expects($this->once())
+    public function testReduceFromArrayCallsRepositoryWithCorrectQuantity(): void
+    {
+        $this->stockRepository->expects($this->once())
             ->method('updateQuantityInStockByProduct')
             ->with(7, 'Product A');
 
-        $this->stockService->reduceProductFromStock($data);
+        $this->stockService->reduceProductFromStock([
+            ['name' => 'Product A', 'quantityInStock' => 10, 'quantity' => 3]
+        ]);
     }
 
-    public function testReduceProductFromStockWithObjectData(): void
+    public function testReduceFromArrayCallsRepositoryForEachItem(): void
     {
-        $data = new \ArrayObject([
-            (object) [
-                'name' => 'Product B',
-                'quantityInStock' => 5,
-                'quantity' => 2
-            ]
+        $calls = [];
+        $this->stockRepository->expects($this->exactly(2))
+            ->method('updateQuantityInStockByProduct')
+            ->willReturnCallback(function (int $qty, string $name) use (&$calls) {
+                $calls[] = [$qty, $name];
+            });
+
+        $this->stockService->reduceProductFromStock([
+            ['name' => 'Product A', 'quantityInStock' => 10, 'quantity' => 3],
+            ['name' => 'Product B', 'quantityInStock' => 20, 'quantity' => 5],
         ]);
 
-        $this->mockStockRepository
-            ->expects($this->once())
+        $this->assertSame([[7, 'Product A'], [15, 'Product B']], $calls);
+    }
+
+    public function testReduceFromArrayCastsStringQuantitiesToInt(): void
+    {
+        $this->stockRepository->expects($this->once())
+            ->method('updateQuantityInStockByProduct')
+            ->with(8, 'Widget');
+
+        $this->stockService->reduceProductFromStock([
+            ['name' => 'Widget', 'quantityInStock' => '12', 'quantity' => '4']
+        ]);
+    }
+
+    // --- object format ---
+
+    public function testReduceFromObjectCallsRepositoryWithCorrectQuantity(): void
+    {
+        $this->stockRepository->expects($this->once())
             ->method('updateQuantityInStockByProduct')
             ->with(3, 'Product B');
 
-        $this->stockService->reduceProductFromStock($data);
+        $this->stockService->reduceProductFromStock(new \ArrayObject([
+            (object)['name' => 'Product B', 'quantityInStock' => 5, 'quantity' => 2]
+        ]));
     }
 
-    public function testReduceProductFromStockWithEmptyData(): void
+    public function testReduceFromObjectCallsRepositoryForEachItem(): void
     {
-        $this->mockStockRepository
-            ->expects($this->never())
+        $calls = [];
+        $this->stockRepository->expects($this->exactly(2))
+            ->method('updateQuantityInStockByProduct')
+            ->willReturnCallback(function (int $qty, string $name) use (&$calls) {
+                $calls[] = [$qty, $name];
+            });
+
+        $this->stockService->reduceProductFromStock(new \ArrayObject([
+            (object)['name' => 'Product C', 'quantityInStock' => 8, 'quantity' => 3],
+            (object)['name' => 'Product D', 'quantityInStock' => 6, 'quantity' => 6],
+        ]));
+
+        $this->assertSame([[5, 'Product C'], [0, 'Product D']], $calls);
+    }
+
+    public function testReduceFromObjectCastsStringQuantitiesToInt(): void
+    {
+        $this->stockRepository->expects($this->once())
+            ->method('updateQuantityInStockByProduct')
+            ->with(6, 'Gadget');
+
+        $this->stockService->reduceProductFromStock(new \ArrayObject([
+            (object)['name' => 'Gadget', 'quantityInStock' => '10', 'quantity' => '4']
+        ]));
+    }
+
+    // --- edge cases ---
+
+    public function testReduceFromEmptyArrayNeverCallsRepository(): void
+    {
+        $this->stockRepository->expects($this->never())
             ->method('updateQuantityInStockByProduct');
 
         $this->stockService->reduceProductFromStock([]);
+    }
+
+    public function testReduceFromEmptyObjectNeverCallsRepository(): void
+    {
+        $this->stockRepository->expects($this->never())
+            ->method('updateQuantityInStockByProduct');
+
+        $this->stockService->reduceProductFromStock(new \ArrayObject([]));
     }
 }

@@ -15,63 +15,94 @@ class LogServiceTest extends TestCase
 {
     private KernelInterface $kernel;
     private LoggerInterface $logger;
-    private LogService $logService;
 
     protected function setUp(): void
     {
         $this->kernel = $this->createMock(KernelInterface::class);
         $this->logger = $this->createMock(LoggerInterface::class);
-
-        $this->logService = new LogService($this->kernel, $this->logger);
     }
 
-    public function testStreamInitSetsUpLoggerCorrectly(): void
+    // --- streamInit ---
+
+    public function testStreamInitReplacesLoggerWithMonologInstance(): void
     {
-        $this->kernel
-            ->method('getProjectDir')
-            ->willReturn('/app');
-        $this->kernel
-            ->method('getLogDir')
-            ->willReturn('/app/var/log');
+        $this->kernel->method('getProjectDir')->willReturn('/tmp');
+        $this->kernel->method('getLogDir')->willReturn('/tmp/var/log');
 
-        $this->logService->streamInit();
+        $logService = new LogService($this->kernel, $this->logger);
+        $logService->streamInit();
 
-        $ref = new \ReflectionClass($this->logService);
-        $loggerProp = $ref->getProperty('logger');
-        $loggerProp->setAccessible(true);
-        $logger = $loggerProp->getValue($this->logService);
+        $prop = new \ReflectionProperty(LogService::class, 'logger');
+        $prop->setAccessible(true);
+        $newLogger = $prop->getValue($logService);
 
-        $this->assertInstanceOf(Logger::class, $logger);
-        $handlers = $logger->getHandlers();
-        $this->assertCount(1, $handlers);
-        $this->assertInstanceOf(StreamHandler::class, $handlers[0]);
+        $this->assertInstanceOf(Logger::class, $newLogger);
+        $this->assertCount(1, $newLogger->getHandlers());
+        $this->assertInstanceOf(StreamHandler::class, $newLogger->getHandlers()[0]);
     }
 
-    public function testLogExceptionWritesErrorToLogger(): void
+    // --- logException ---
+    // streamInit() replaces $this->logger with a new Logger instance, so the mock logger
+    // would be lost. We partial-mock streamInit() to a no-op so the mock logger stays active.
+
+    private function makeLogService(): LogService
     {
-        $textOfException = 'Something went wrong';
+        $logService = $this->getMockBuilder(LogService::class)
+            ->setConstructorArgs([$this->kernel, $this->logger])
+            ->onlyMethods(['streamInit'])
+            ->getMock();
 
-        $this->kernel
-            ->method('getProjectDir')
-            ->willReturn('/tmp');
-        $this->kernel
-            ->method('getLogDir')
-            ->willReturn('/tmp/var/log');
+        $logService->method('streamInit');
 
-        $exception = new \Exception($textOfException);
+        return $logService;
+    }
 
-        $this->logger
-            ->expects($this->once())
+    public function testLogExceptionCallsErrorWithExceptionMessage(): void
+    {
+        $logService = $this->makeLogService();
+        $exception = new \RuntimeException('something went wrong');
+
+        $this->logger->expects($this->once())
             ->method('error')
-            ->with($this->stringContains($textOfException));
+            ->with($this->stringContains('something went wrong'));
 
-        $this->logger->error('Something went wrong: ' . $exception->getMessage(), [
-            'exception' => $exception,
-        ]);
+        $logService->logException($exception);
+    }
 
-        $this->logService->logException($exception);
+    public function testLogExceptionMessageContainsTimestamp(): void
+    {
+        $logService = $this->makeLogService();
+        $exception = new \RuntimeException('error');
+
+        $this->logger->expects($this->once())
+            ->method('error')
+            ->with($this->matchesRegularExpression('/\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]/'));
+
+        $logService->logException($exception);
+    }
+
+    public function testLogExceptionCallsStreamInitBeforeLogging(): void
+    {
+        $logService = $this->getMockBuilder(LogService::class)
+            ->setConstructorArgs([$this->kernel, $this->logger])
+            ->onlyMethods(['streamInit'])
+            ->getMock();
+
+        $logService->expects($this->once())->method('streamInit');
+        $this->logger->method('error');
+
+        $logService->logException(new \RuntimeException('test'));
+    }
+
+    public function testLogExceptionMessageContainsCallerClassName(): void
+    {
+        $logService = $this->makeLogService();
+        $exception = new \RuntimeException('caller test');
+
+        $this->logger->expects($this->once())
+            ->method('error')
+            ->with($this->stringContains('LogServiceTest'));
+
+        $logService->logException($exception);
     }
 }
-
-
-
