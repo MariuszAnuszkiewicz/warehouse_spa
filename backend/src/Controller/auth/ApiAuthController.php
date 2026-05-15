@@ -78,7 +78,7 @@ class ApiAuthController extends AbstractController
         }
 
         $refreshToken = $this->refreshTokenManager->get($refreshTokenString);
-        if (!$refreshToken) {
+        if (!$refreshToken || !$refreshToken->isValid()) {
             return $this->json(['error' => 'Invalid refresh token'], Response::HTTP_UNAUTHORIZED);
         }
 
