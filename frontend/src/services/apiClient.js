@@ -1,4 +1,5 @@
 import axios from 'axios';
+import router from '@/router';
 
 const apiClient = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
@@ -61,7 +62,7 @@ apiClient.interceptors.response.use(
                 processQueue(refreshError, null);
                 localStorage.removeItem('token');
                 localStorage.removeItem('refresh_token');
-                window.location.href = '/login';
+                router.push('/login');
                 return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;

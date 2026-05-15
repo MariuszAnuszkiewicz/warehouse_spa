@@ -1,11 +1,11 @@
 import { ref } from 'vue';
 import axios from 'axios';
+import router from '@/router';
 
 const authService = () => {
 
     const loginStatus = ref(null);
     const switchLink = ref(true);
-    const token = ref('');
     const email = ref('');
     const password = ref('');
     const name = ref('');
@@ -80,16 +80,9 @@ const authService = () => {
         redirectTo('/login');
     };
 
-    const redirectTo = ($url) => {
-        window.location.href = $url;
+    const redirectTo = (url) => {
+        router.push(url);
     };
-
-    const detect401 = (status = 401) => {
-        if (status === 401) {
-            window.location.href = '/login';
-            return true;
-        }
-    }
 
     return {
         loginStatus,
@@ -101,7 +94,6 @@ const authService = () => {
         handleRegister,
         handleLogin,
         redirectTo,
-        detect401,
         errors
     }
 };
