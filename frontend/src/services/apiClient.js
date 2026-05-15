@@ -51,7 +51,6 @@ apiClient.interceptors.response.use(
                     import.meta.env.VITE_API_URL + '/api/token/refresh',
                     { refresh_token: localStorage.getItem('refresh_token') }
                 );
-
                 localStorage.setItem('token', data.token);
                 apiClient.defaults.headers.common['Authorization'] = 'Bearer ' + data.token;
                 originalRequest.headers['Authorization'] = 'Bearer ' + data.token;

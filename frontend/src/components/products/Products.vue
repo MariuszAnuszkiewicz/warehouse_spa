@@ -45,13 +45,12 @@
   </div>
 </template>
 
-<script setup name="Products">
+<script setup>
 useTitle('products');
 
 import { ref, onMounted, watch, inject } from 'vue';
 import { useRouter } from 'vue-router';
 import apiClient from '@/services/apiClient';
-import authService from '@/services/authService';
 import Navbar from '@/components/navbar/Navbar';
 import ProductModal from '@/components/products/modals/ProductModal';
 import { useTitle } from '@/helpers/useTitle';
@@ -88,7 +87,6 @@ const fetchProducts = async () => {
       products.value = JSON.parse(response.data.products)
     });
   } catch (error) {
-    authService.detect401(error.status);
     console.warn(error);
   } finally {
     isLoading.value = false;
@@ -101,7 +99,6 @@ const fetchProduct = async (id) => {
       product.value = JSON.parse(response.data.product);
     });
   } catch (error) {
-    authService.detect401(error.status);
     console.warn(error);
   } finally {
     isLoading.value = false;
@@ -115,4 +112,5 @@ watch(modal, (newValue, oldValue) => {
 onMounted(() => {
   fetchProducts();
 });
+
 </script>

@@ -25,6 +25,7 @@ services:
     volumes:
       - ./backend/src:/var/www/html/src:cached
       - ./backend/public:/var/www/html/public:cached
+      - ./backend/config:/var/www/html/config:cached
     command: php-fpm
     expose:
       - "9000"
