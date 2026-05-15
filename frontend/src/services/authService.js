@@ -52,12 +52,10 @@ const authService = () => {
 
     const handleLogin = async () => {
         try {
-            await axios.post(`${import.meta.env.VITE_API_URL}/api/login`, $forms.loginForm)
-           .then((response) => {
-               token.value = response.data.token;
-            });
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/login`, $forms.loginForm);
 
-            localStorage.setItem('token', token.value);
+            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('refresh_token', response.data.refresh_token);
             resetLoginForm();
             return true;
         } catch (error) {
@@ -78,6 +76,7 @@ const authService = () => {
 
     const logout = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
         redirectTo('/login');
     };
 
